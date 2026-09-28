@@ -158,3 +158,11 @@ body {
 .rmain.k-retry, .rmain.k-unknown { color: #a9dcff; }
 .rmain.k-ng { color: #ffb3a3; }
 .rmsg { font-size: 15px; }
+
+/* ---- 本編 ---- */
+.prompt { margin: 0; font-size: 16px; line-height: 1.5; }
+.qnum { margin: 0; font-size: 13px; color: #ffe27a; }
+.cbtn.big { font-size: 19px; min-height: 48px; }
+.rmsg.big { font-size: 17px; line-height: 1.5; }
+.rmsg.k-unknown, .rmsg.k-retry { color: #a9dcff; }
+.rmsg.k-ng { color: #ffb3a3; }

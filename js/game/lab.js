@@ -14,18 +14,8 @@
   var MAN_SEC = { idle: 4, walk: 5, run: 4, jump: 3.2, climb: 4.8, fall: 2.2 * 2, swim: 5, swing: 1.5 * 3, cheer: 2.8, puzzled: 3, erased: 4 };
   var TAG_SEC = { heavy: 5.2, long: 4.6, big: 3.4, small: 3, edible: 4, hard: 2.3 * 2, soft: 2.2 * 2 };
 
-  // 判定テスト用の問題（第1章を作るときに、本物の問題データに置きかえる）
-  var LAB_PROBLEMS = {
-    none: null,
-    cliff: {
-      rules: [
-        { tag: 'fly', result: 'success', anim: 'cheer', ja: '「{w}」に乗って、ふわりと崖を飛びこえた！', en: 'Rode the {w} and floated over the cliff!' },
-        { tag: 'long', result: 'success', anim: 'cheer', ja: '「{w}」がのびて、崖の向こうまで届いた！', en: 'The {w} stretched all the way across!' },
-        { sub: 'building', result: 'success', anim: 'cheer', ja: '「{w}」が橋になって、崖を渡れた！', en: 'The {w} became a bridge over the cliff!' },
-        { sub: 'bug', result: 'funny', anim: 'jump', ja: '「{w}」の大群がやって来て、つながって橋になった！', en: 'A swarm of {w} linked up into a bridge!' }
-      ]
-    }
-  };
+  // 判定テストの問題は、本編の問題データ（js/data/problems.js）をそのまま使う
+  function labProblem(id) { return (CM.PROBLEMS || []).filter(function (p) { return p.id === id; })[0] || null; }
   var EXAMPLES = ['黒板消し', 'ドラゴン', 'はしご', 'いえ', 'アリ', 'オノ', 'ｵﾉ', 'AXES', 'ほげほげ'];
   // 結果ごとの棒人間の動き（反応に書いていないとき）
   var KIND_ANIM = { success: 'cheer', funny: 'jump', fail: 'puzzled', pinch: 'erased', retry: 'puzzled', unknown: 'puzzled' };
@@ -55,7 +45,7 @@
       tagAuto: false, tagIdx: -1, tagT: 0,
       word: null, writer: null, phase: 'none', phaseT: 0, fly: null,
       over: false, overT: 0,
-      prob: 'cliff', result: null, ngT: -1, crumble: false,
+      prob: 'c1q3', result: null, ngT: -1, crumble: false,
       time: 0
     };
     var ui = {}; // DOM の部品
@@ -65,6 +55,7 @@
     // ------------------------------------------------------------
     function buildHud() {
       hudEl.innerHTML = '';
+      hudEl.appendChild(btn(T('toTitle'), 'small', function () { app.sfx.play('ui'); app.go('play'); }));
       hudEl.appendChild(btn(T('lang'), 'small', function () {
         app.i18n.setLang(app.i18n.lang === 'ja' ? 'en' : 'ja');
         document.documentElement.lang = app.i18n.lang;
@@ -116,8 +107,8 @@
       var st = CM.DICT_STATS;
       padEl.appendChild(el('p', 'note kb-hide', T('judgeNote', { ja: st.ja, en: st.en, all: st.ja + st.en })));
       var pr = el('div', 'tabs kb-hide');
-      [['none', 'probNone'], ['cliff', 'probCliff']].forEach(function (d) {
-        pr.appendChild(btn(T(d[1]), 'small' + (S.prob === d[0] ? ' on' : ''), function () {
+      [['none', T('probNone')]].concat(CM.PROBLEMS.map(function (p, i) { return [p.id, 'Q' + (i + 1)]; })).forEach(function (d) {
+        pr.appendChild(btn(d[1], 'small' + (S.prob === d[0] ? ' on' : ''), function () {
           S.prob = d[0]; app.sfx.play('ui');
           if (S.result && S.result.kind !== 'ng') judgeSubmit(S.result.text); else buildPad();
         }));
@@ -263,7 +254,7 @@
 
     /** 判定タブ：判定して、結果に合わせて演出する */
     function judgeSubmit(text) {
-      var r = CM.judgeWord(text, LAB_PROBLEMS[S.prob]);
+      var r = CM.judgeWord(text, labProblem(S.prob));
       S.result = r;
       S.tagAuto = false;
       if (r.kind === 'empty') { buildPad(); return; }
@@ -481,7 +472,7 @@
           ? (CM.MAN_ORDER.indexOf(man.name) + 1) + '/11  ' + T('anim_' + man.name)
           : S.tab === 'word'
             ? (tagPlayer.key ? (S.tagAuto ? (CM.TAG_ORDER.indexOf(tagPlayer.key) + 1) + '/15  ' : '') + T('tag_' + tagPlayer.key) : T('tagNone'))
-            : S.tab === 'judge' ? T(S.prob === 'cliff' ? 'headCliff' : 'headNone')
+            : S.tab === 'judge' ? (labProblem(S.prob) ? labProblem(S.prob).title[app.i18n.lang] : T('headNone'))
             : T('chalkLeft', { n: Math.round(meter.value) });
         CM.chalk.text(ctx, head, st.x + 14, st.y + 22, { size: 20, align: 'left', color: COL.yellow, maxW: st.w - 130 });
         // 地面

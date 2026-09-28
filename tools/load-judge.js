@@ -11,7 +11,7 @@ module.exports = function loadJudge() {
   const ctx = { console, Intl };
   ctx.window = ctx;
   vm.createContext(ctx);
-  ['js/game/config.js', 'js/game/util.js', 'js/data/dictionary.js', 'js/data/reactions.js', 'js/data/ngwords.js', 'js/game/judge.js']
+  ['js/game/config.js', 'js/game/util.js', 'js/data/dictionary.js', 'js/data/reactions.js', 'js/data/ngwords.js', 'js/game/judge.js', 'js/data/problems.js']
     .forEach(f => vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f }));
   return ctx.CM;
 };

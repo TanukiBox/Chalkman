@@ -156,8 +156,25 @@
   }
   document.addEventListener('visibilitychange', function () { last = 0; });
 
+  /** 黒板の地の絵を、四角の範囲だけ上から重ねる（チョークを消したように見せる） */
+  app.drawBoardPatch = function (c, x, y, w, h, alpha) {
+    if (w <= 0 || h <= 0 || alpha <= 0) return;
+    var d = app.dpr;
+    c.save();
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.globalAlpha = alpha;
+    c.drawImage(bg, x * d, y * d, w * d, h * d, x * d, y * d, w * d, h * d);
+    c.restore();
+  };
+  /** 画面を切りかえる（'play'＝本編、'lab'＝確認用の画面） */
+  app.go = function (name) {
+    app.fx.clear(); app.realFx.clear();
+    app.scene = app.scenes[name];
+    app.scene.enter();
+  };
+
   checkSize(true);
-  app.scene = CM.createLab(app);
-  app.scene.enter();
+  app.scenes = { play: CM.createPlay(app), lab: CM.createLab(app) };
+  app.go(/[?&]lab\b/.test(global.location.search) ? 'lab' : 'play');
   global.requestAnimationFrame(frame);
 })(window);

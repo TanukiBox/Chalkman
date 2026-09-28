@@ -177,7 +177,7 @@
   function commonReaction(entry) {
     var R = CM.COMMON_REACTIONS || {}, c = R[entry.cat] || {};
     var s = c.subs && c.subs[entry.sub];
-    return s ? { ja: s.ja, en: s.en, anim: s.anim, by: 'sub' } : { ja: c.ja || '', en: c.en || '', anim: c.anim || 'puzzled', by: 'cat' };
+    return s ? { ja: s.ja, en: s.en, anim: s.anim, act: s.act, by: 'sub' } : { ja: c.ja || '', en: c.en || '', anim: c.anim || 'puzzled', act: c.act, by: 'cat' };
   }
 
   /**
@@ -185,12 +185,12 @@
    *   text    ：プレイヤーが書いた文字（そのまま）
    *   problem ：今の問題（なければ辞書と共通反応だけ）
    *     { specials: [...], rules: [{ tag|sub|cat|word, result: 'success'|'funny', ja, en, anim }] }
-   * 返すもの：{ text, key, level, kind, entry, rule, special, reaction, showTag, chalk }
+   * 返すもの：{ text, key, level, kind, entry, rule, special, reaction, act(演出), route, showTag, chalk }
    */
   CM.judgeWord = function (text, problem) {
     var shown = chars(String(text || '').trim()).slice(0, WORD_MAX).join('');
     var key = normalize(shown);
-    var r = { text: shown, key: key, level: -1, kind: 'empty', entry: null, rule: null, special: null, reaction: null, showTag: null, chalk: 0 };
+    var r = { text: shown, key: key, level: -1, kind: 'empty', entry: null, rule: null, special: null, reaction: null, act: null, route: null, showTag: null, chalk: 0 };
     if (!key) return r;
     // 0. NGワード
     if (CM.isNG(shown)) { r.level = 0; r.kind = 'ng'; return r; }
@@ -201,6 +201,7 @@
     if (sp) {
       r.level = 1; r.kind = sp.result; r.special = sp;
       r.reaction = { ja: sp.ja, en: sp.en, anim: sp.anim };
+      r.act = sp.act || null;
       r.chalk = sp.result === 'pinch' || sp.result === 'fail' ? CHALK_FAIL : 0;
       r.showTag = entry && entry.tags[0] || null;
       return r;
@@ -216,10 +217,13 @@
         var list = steps[s][1];
         for (var i = 0; i < list.length; i++) {
           if (ruleMatches(list[i], entry, key)) {
-            r.level = steps[s][0]; r.kind = list[i].result; r.rule = list[i];
-            r.reaction = { ja: list[i].ja, en: list[i].en, anim: list[i].anim };
-            r.showTag = list[i].tag || entry.tags[0] || null;
-            r.chalk = list[i].result === 'fail' ? CHALK_FAIL : 0;
+            var rule = list[i], v = (rule.variants && rule.variants[entry.sub]) || {};
+            r.level = steps[s][0]; r.kind = rule.result; r.rule = rule;
+            r.reaction = { ja: v.ja || rule.ja, en: v.en || rule.en, anim: v.anim || rule.anim };
+            r.act = v.act || rule.act || null;
+            r.route = rule.route || null;
+            r.showTag = rule.tag || entry.tags[0] || null;
+            r.chalk = rule.result === 'fail' ? CHALK_FAIL : 0;
             return r;
           }
         }
@@ -228,6 +232,7 @@
     // 4. 共通反応（失敗）
     r.level = 4; r.kind = 'fail';
     r.reaction = commonReaction(entry);
+    r.act = r.reaction.act || null;
     r.showTag = entry.tags[0] || null;
     r.chalk = CHALK_FAIL;
     return r;

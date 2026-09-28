@@ -145,6 +145,8 @@
 
   /** 左右に行ったり来たりする（歩く・走る・泳ぐ） */
   function roam(st, env, speed, dt) {
+    // 本編の演出では、位置は演出の側で動かす（その場で足だけ動かす）
+    if (env.fixedX !== undefined) { st.x = env.fixedX; st.f = env.f || 1; return st; }
     var L = env.stage.x + env.stage.w * 0.14, R = env.stage.x + env.stage.w * 0.86;
     if (st.x === undefined) { st.x = env.cx; st.f = 1; }
     st.x += st.f * speed * dt;
@@ -405,6 +407,82 @@
     }
   };
   CM.MAN_ORDER = ['idle', 'walk', 'run', 'jump', 'climb', 'fall', 'swim', 'swing', 'cheer', 'puzzled', 'erased'];
+
+  // ---- 本編の演出で使う、追加の姿勢（確認用の11種類とは別）----
+
+  // おなかがすいた：前かがみで、両手をおなかに
+  CM.MAN_ANIMS.hungry = {
+    loop: 3,
+    frame: function (t, env) {
+      var p = stand(env.cx, 0, 1), b = Math.sin(t * 2);
+      p.lean = 0.3 + 0.03 * b; p.tilt = 0.25;
+      p.aF = [0.6, 1.5]; p.aB = [0.4, 1.7];
+      p.lF = [0.35, -0.6]; p.lB = [0.05, -0.5];
+      p.mouth = 'wavy'; p.eyes = 'closed';
+      return { pose: plant(p, env.s, env.groundY) };
+    }
+  };
+  // 物に乗る（腰の高さ＝env.groundY。足を前に出してまたがる）
+  CM.MAN_ANIMS.ride = {
+    loop: 2,
+    frame: function (t, env) {
+      var s = env.s;
+      var p = { x: env.cx, y: env.groundY - 3 * s, f: 1, lean: 0.12, tilt: -0.05 + 0.04 * Math.sin(t * 4),
+        aF: [0.9 + 0.1 * Math.sin(t * 5), 0.7], aB: [0.7, 0.9], lF: [1.25, -1.1], lB: [0.95, -1.0], mouth: 'smile', eyes: 'dot', alpha: 1 };
+      return { pose: p };
+    }
+  };
+  // 食べる・飲む：両手を口へ。口をぱくぱく
+  CM.MAN_ANIMS.eat = {
+    loop: 1,
+    frame: function (t, env) {
+      var p = stand(env.cx, 0, 1), c = Math.sin(t * 12);
+      p.aF = [0.45, 2.4 + 0.15 * c]; p.aB = [0.35, 2.5 - 0.15 * c];
+      p.tilt = -0.1 + 0.05 * c;
+      p.mouth = c > 0 ? 'o' : 'flat';
+      return { pose: plant(p, env.s, env.groundY) };
+    }
+  };
+  // 物を胸の前で持つ（env.shake で、ふってみる）
+  CM.MAN_ANIMS.hold = {
+    loop: 2,
+    frame: function (t, env) {
+      var p = stand(env.cx, 0, 1), k = env.shake ? Math.sin(t * 24) * 0.25 : Math.sin(t * 2) * 0.05;
+      p.aF = [0.9 + k, 0.9]; p.aB = [0.7 + k, 1.1];
+      p.lF = [0.2, -0.05]; p.lB = [-0.2, 0.05];
+      p.mouth = env.shake ? 'flat' : 'none';
+      return { pose: plant(p, env.s, env.groundY) };
+    }
+  };
+  // 空中で止まった姿勢（跳ぶ途中・投げる など、t を決めて使う）
+  CM.MAN_ANIMS.throwing = {
+    loop: 0.6,
+    frame: function (t, env) {
+      var p = stand(env.cx, 0, 1), k = U.easeOut(Math.min(1, t / 0.25));
+      p.aF = [U.lerp(3.4, 1.3, k), 0.2]; p.aB = [-0.6, -0.3]; p.lean = U.lerp(-0.15, 0.25, k);
+      p.lF = [0.4, -0.2]; p.lB = [-0.35, 0.05]; p.mouth = 'o';
+      return { pose: plant(p, env.s, env.groundY) };
+    }
+  };
+  // 跳んでいる途中（ひざを曲げて、両手を上げる）
+  CM.MAN_ANIMS.hopAir = {
+    loop: 1,
+    frame: function (t, env) {
+      var p = stand(env.cx, 0, 1);
+      p.aF = [2.3, 0.4]; p.aB = [-2.2, -0.4]; p.lF = [0.9, -1.5]; p.lB = [0.5, -1.2]; p.lean = 0.1; p.mouth = 'o';
+      return { pose: plant(p, env.s, env.groundY) };
+    }
+  };
+  // 掘る：シャベルのように、前でザクザク
+  CM.MAN_ANIMS.dig = {
+    loop: 0.7,
+    frame: function (t, env) {
+      var p = stand(env.cx, 0, 1), c = Math.sin(t / 0.7 * TAU);
+      p.lean = 0.35 + 0.15 * c; p.aF = [0.9 - 0.5 * c, 0.4]; p.aB = [0.7 - 0.5 * c, 0.6];
+      p.lF = [0.45, -0.5]; p.lB = [-0.2, -0.2]; p.mouth = 'flat';
+      return { pose: plant(p, env.s, env.groundY) };
+    }
+  };
 
   /** 足音などを、周期の決まった位置で鳴らすための目印 */
   function stepEvents(w, id) {

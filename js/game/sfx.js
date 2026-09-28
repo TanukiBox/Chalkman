@@ -114,6 +114,27 @@
         S.synth({ f: 440, f1: 330, glide: 0.3, dur: 0.3, vol: 0.04, osc: SOFT, env: { a: 0.02, d: 0.2, s: 0.5, r: 0.2 } });
       },
 
+      // ---- 本編の演出 ----
+      pickup: function () { S.tone({ type: 'triangle', f0: 500, f1: 800, dur: 0.06, vol: 0.06 }); },
+      patter: function () { S.noise({ dur: 0.02, vol: 0.05, f0: 2500 + Math.random() * 1500, q: 3 }); },
+      gulp: function () { S.synth({ f: 220, f1: 160, glide: 0.12, dur: 0.12, vol: 0.12, osc: SOFT, env: { a: 0.01, d: 0.1, s: 0.3, r: 0.08 } }); },
+      stir: function () { for (var i = 0; i < 4; i++) S.noise({ dur: 0.2, vol: 0.06, f0: 800, f1: 1400, q: 1, delay: i * 0.3 }); },
+      poof: function () { S.noise({ dur: 0.4, vol: 0.2, f0: 600, f1: 150, q: 0.7 }); },
+      boom: function () {
+        S.synth({ f: 90, f1: 35, glide: 0.4, dur: 0.4, vol: 0.4, osc: [{ type: 'sine' }, { type: 'triangle', gain: 0.5 }], env: { a: 0.002, d: 0.3, s: 0.2, r: 0.3 }, reverb: 0.4 });
+        S.noise({ dur: 0.5, vol: 0.3, f0: 800, f1: 100, q: 0.6 });
+      },
+      bark: function () {
+        S.synth({ f: 520, f1: 300, glide: 0.08, dur: 0.08, vol: 0.09, osc: [{ type: 'sawtooth' }], env: { a: 0.005, d: 0.06, s: 0.4, r: 0.05 }, filter: { f: 1800, q: 2 } });
+        S.synth({ f: 480, f1: 280, glide: 0.08, dur: 0.07, vol: 0.08, osc: [{ type: 'sawtooth' }], env: { a: 0.005, d: 0.06, s: 0.4, r: 0.05 }, filter: { f: 1800, q: 2 }, delay: 0.16 });
+      },
+      growl: function () { S.synth({ f: 90, f1: 70, glide: 0.6, dur: 0.6, vol: 0.12, osc: [{ type: 'sawtooth' }], env: { a: 0.05, d: 0.3, s: 0.6, r: 0.2 }, filter: { f: 300, q: 4 }, vib: { rate: 18, depth: 60, delay: 0 } }); },
+      dig: function () { S.noise({ dur: 0.12, vol: 0.2, f0: 900, f1: 300, q: 1 }); },
+      swirl: function () { S.synth({ f: 600, f1: 150, glide: 1.2, dur: 1.2, vol: 0.05, osc: SOFT, env: { a: 0.05, d: 0.5, s: 0.6, r: 0.3 }, vib: { rate: 8, depth: 80, delay: 0 }, reverb: 0.3 }); },
+      yawn: function () { S.synth({ f: 300, f1: 200, glide: 0.8, dur: 0.8, vol: 0.06, osc: SOFT, env: { a: 0.1, d: 0.4, s: 0.6, r: 0.3 } }); },
+      flop: function () { S.noise({ dur: 0.05, vol: 0.12, f0: 1500, f1: 800, q: 2 }); },
+      rattle: function () { for (var i = 0; i < 8; i++) S.noise({ dur: 0.03, vol: 0.08, f0: 2000 + Math.random() * 2000, q: 3, delay: i * 0.1 }); },
+
       // ---- チョーク残量 ----
       snap: function () {
         S.noise({ dur: 0.04, vol: 0.35, f0: 3200, q: 2.5 });
