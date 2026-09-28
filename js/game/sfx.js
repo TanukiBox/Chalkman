@@ -108,6 +108,12 @@
       },
       cute: function () { [0, 7, 12].forEach(function (s, i) { bell(note(1046, s), { delay: i * 0.08, vol: 0.035 }); }); },
 
+      // 辞書にない言葉：文字がぽろぽろ崩れる
+      crumble: function () {
+        for (var i = 0; i < 6; i++) S.noise({ dur: 0.05, vol: 0.1, f0: 1800 + Math.random() * 1500, q: 2, delay: i * 0.09 + Math.random() * 0.04 });
+        S.synth({ f: 440, f1: 330, glide: 0.3, dur: 0.3, vol: 0.04, osc: SOFT, env: { a: 0.02, d: 0.2, s: 0.5, r: 0.2 } });
+      },
+
       // ---- チョーク残量 ----
       snap: function () {
         S.noise({ dur: 0.04, vol: 0.35, f0: 3200, q: 2.5 });

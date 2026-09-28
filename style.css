@@ -132,3 +132,29 @@ body {
 
 /* キーボードが開いている間は、書く欄を入力だけにする */
 #pad.kb .kb-hide { display: none; }
+
+/* ---- 判定テスト ---- */
+.examples { align-items: center; flex-wrap: nowrap; overflow-x: auto; flex: 0 0 auto; padding-bottom: 2px; }
+.examples .note { flex: 0 0 auto; }
+.examples .cbtn { flex: 0 0 auto; }
+.examples .cbtn { min-height: 28px; font-size: 13px; padding: 2px 7px; }
+.result { display: flex; flex-direction: column; gap: 4px; }
+.levels { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 4px; }
+.levels .lv { flex: 0 0 auto; white-space: nowrap; }
+.levels .lv {
+  font-size: 12px;
+  padding: 2px 6px;
+  border: 1.5px dashed rgba(243, 241, 231, 0.35);
+  border-radius: 8px;
+  color: rgba(243, 241, 231, 0.55);
+}
+.levels .lv.hit { border-style: solid; border-color: #ffe27a; color: #ffe27a; background: rgba(255, 226, 122, 0.12); }
+.result p { margin: 0; line-height: 1.35; }
+.rline { font-size: 13px; color: rgba(243, 241, 231, 0.8); word-break: break-all; }
+.rmain { font-size: 16px; }
+.rmain.k-success { color: #b8f0a0; }
+.rmain.k-funny { color: #ffe27a; }
+.rmain.k-fail, .rmain.k-pinch { color: #ffb3a3; }
+.rmain.k-retry, .rmain.k-unknown { color: #a9dcff; }
+.rmain.k-ng { color: #ffb3a3; }
+.rmsg { font-size: 15px; }
