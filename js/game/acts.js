@@ -879,6 +879,318 @@
     yield 1.2;
   };
 
+  // ============================================================
+  //  1問目：高い所から、下の地面まで無事に降りる
+  // ============================================================
+  /** 足元の線が崩れる */
+  function* crumbleLedge(D) {
+    var seg = D.sc.segs[0], s = D.s;
+    if (!seg || seg.gone) return;
+    D.sfx.play('crumble');
+    for (var i = 0; i < 8; i++) D.fx.dust(U.lerp(seg.x0, seg.x1, Math.random()), seg.y + 2, 3, { angle: PI / 2, spread: 0.8, speed: 40, g: 300, life: 1, size: 2 });
+    yield D.tween(0.35, function (k) { seg.alpha = 1 - k; });
+    seg.gone = true;
+  }
+  /** 手足をばたばたさせて、(x, gy) まで落ちる */
+  function fallTo(D, a, x1, gy1, sec) {
+    var x0 = a.x, g0 = a.gy;
+    a.play('flail');
+    D.sfx.play('whoosh');
+    return D.tween(sec, function (k) { a.x = U.lerp(x0, x1, k); a.gy = U.lerp(g0, gy1, k * k); });
+  }
+  /** 文字を下の地面の、着地する場所へ */
+  function wordToLanding(D, sec) {
+    var w = D.w, sc = D.sc, s = D.s, x0 = w.x, y0 = w.y;
+    return D.tween(sec || 0.6, function (k) {
+      w.x = U.lerp(x0, sc.landX, k);
+      w.y = U.lerp(y0, sc.floorY - w.dispH() / 2 - 2, k) - Math.sin(k * PI) * 30 * s;
+    });
+  }
+  function* walkOff(D) {
+    yield D.walkTo(exitX(D));
+  }
+
+  // クッションになって、ぽよんと着地（柔らかい）
+  A.cushion = function* (D) {
+    var w = D.w, m = D.man, s = D.s, sc = D.sc;
+    yield wordToLanding(D);
+    D.sfx.play('land');
+    yield D.walkTo(sc.edgeX - 8 * s, { anim: 'walk' });
+    yield* crumbleLedge(D);
+    yield fallTo(D, m, sc.landX, topOf(w) + 2, 0.55);
+    D.sfx.play('boing');
+    pop(D, 'sfx_boing', w.x, topOf(w) - 70 * s, COL.pink, 20);
+    m.play('hopAir');
+    yield D.tween(0.7, function (k) {
+      var d = Math.exp(-k * 5) * Math.cos(k * 18);
+      w.sy = 1 - 0.35 * d; w.sx = 1 + 0.25 * d; onGround(D, w, sc.floorY);
+      m.gy = topOf(w) + 2; m.dy = -Math.sin(Math.min(1, k * 1.6) * PI) * 30 * s;
+    });
+    m.dy = 0; w.sx = w.sy = 1;
+    m_cheer(D);
+    yield 0.7;
+    yield D.hop(m, sc.landX + w.dispW() / 2 + 26 * s, sc.floorY, 22 * s, 0.45);
+    yield* walkOff(D);
+  };
+
+  // 大きな文字が足場になって、小さくなりながら降ろしてくれる（大きい）
+  A.tower = function* (D) {
+    var w = D.w, m = D.man, s = D.s, sc = D.sc, s0 = w.scale;
+    yield wordToLanding(D);
+    var big = Math.min((sc.floorY - sc.gy + 4) / w.height, (D.st.w * 0.5) / w.width);
+    D.sfx.play('grow');
+    D.fx.shake(4, 0.4);
+    pop(D, 'sfx_zoom', sc.landX, sc.gy - 30 * s, COL.chalk, 22);
+    yield D.tween(0.7, function (k) { w.scale = U.lerp(s0, big, U.easeBack(k)); onGround(D, w, sc.floorY); });
+    yield D.walkTo(sc.edgeX - 6 * s, { anim: 'walk' });
+    yield D.hop(m, w.x, topOf(w) + 1, 20 * s, 0.45);
+    D.follow(function () { m.x = w.x; m.gy = topOf(w) + 1; });
+    yield* crumbleLedge(D);
+    D.sfx.play('stretch');
+    pop(D, 'sfx_shururu', w.x + w.dispW() / 2, topOf(w) - 20 * s, COL.chalk, 18);
+    yield D.tween(1.3, function (k) { w.scale = U.lerp(big, s0, U.easeInOut(k)); onGround(D, w, sc.floorY); });
+    D.clearFollow();
+    yield D.hop(m, sc.landX + w.dispW() / 2 + 26 * s, sc.floorY, 18 * s, 0.4);
+    m_cheer(D);
+    yield 0.6;
+    yield* walkOff(D);
+  };
+
+  // 落ちる途中で、空中キャッチ（飛ぶ）
+  A.catch = function* (D) {
+    var w = D.w, m = D.man, s = D.s, sc = D.sc;
+    yield D.walkTo(sc.edgeX - 8 * s, { anim: 'walk' });
+    yield* crumbleLedge(D);
+    var midX = sc.edgeX + 50 * s, midGy = (sc.gy + sc.floorY) / 2, x0 = w.x, y0 = w.y;
+    D.sfx.play('fly');
+    yield D.all([
+      fallTo(D, m, midX, midGy, 0.45),
+      D.tween(0.45, function (k) { w.x = U.lerp(x0, midX + 4 * s, k); w.y = U.lerp(y0, midGy + w.dispH() / 2 - 2, U.easeOut(k)); })
+    ]);
+    m.play('ride');
+    D.follow(function () { m.x = w.x - 4 * s; m.gy = topOf(w) + 1; });
+    pop(D, 'sfx_fuwa', w.x, topOf(w) - 60 * s, COL.chalk, 18);
+    var wx = w.x, wy = w.y;
+    yield D.tween(1.4, function (k) {
+      w.x = U.lerp(wx, sc.landX, k);
+      w.y = U.lerp(wy, sc.floorY - w.dispH() / 2 - 2, U.easeInOut(k)) + Math.sin(k * 10) * 3 * s;
+      w.rot = Math.sin(k * 8) * 0.05;
+    });
+    w.rot = 0;
+    D.clearFollow();
+    yield D.hop(m, sc.landX + w.dispW() / 2 + 24 * s, sc.floorY, 18 * s, 0.4);
+    m_cheer(D);
+    yield 0.6;
+    yield* walkOff(D);
+  };
+
+  // 水の中にばしゃーんと着地して、泳いで岸へ（泳ぐ）
+  A.splash = function* (D) {
+    var w = D.w, m = D.man, s = D.s, sc = D.sc;
+    yield wordToLanding(D);
+    var px = sc.landX, py = sc.floorY - 8 * s, pw = 70 * s;
+    w.tint = COL.blue;
+    D.chalkHook(function (ctx, t) {
+      for (var r = 0; r < 3; r++) {
+        var pts = [];
+        for (var x = px - pw; x <= px + pw; x += 8) pts.push(x, py + r * 7 * s + Math.sin(x * 0.08 + t * 3 + r) * 2.5 * s);
+        CM.chalk.line(ctx, pts, { w: 1.8, color: COL.blue, alpha: 0.85 - r * 0.2, seed: r + Math.floor(t * 4) });
+      }
+    });
+    D.follow(function () { for (var i = 0; i < w.off.length; i++) w.off[i].y = Math.sin(D.time * 5 - i * 0.9) * 6; });
+    D.sfx.play('splash');
+    yield 0.4;
+    yield D.walkTo(sc.edgeX - 8 * s, { anim: 'walk' });
+    yield* crumbleLedge(D);
+    yield fallTo(D, m, px - 20 * s, py + 6 * s, 0.55);
+    D.sfx.play('splash');
+    D.fx.dust(px - 20 * s, py, 20, { angle: -PI / 2, spread: 1.4, speed: 160, g: 400, color: COL.blue, size: 2.4 });
+    pop(D, 'sfx_splash', px, py - 70 * s, COL.blue, 22);
+    m.play('swim');
+    m.gy = py + 30 * s;
+    var mx = m.x;
+    yield D.tween(1.4, function (k) { m.x = U.lerp(mx, px + pw - 10 * s, k); });
+    yield D.hop(m, px + pw + 20 * s, sc.floorY, 20 * s, 0.45);
+    m_cheer(D);
+    yield 0.6;
+    yield* walkOff(D);
+  };
+
+  // 食べ物に頭からずぼっ（食べられる・珍回答）
+  A.plunge = function* (D) {
+    var w = D.w, m = D.man, s = D.s, sc = D.sc;
+    yield wordToLanding(D);
+    D.sfx.play('land');
+    yield D.walkTo(sc.edgeX - 8 * s, { anim: 'walk' });
+    yield* crumbleLedge(D);
+    yield fallTo(D, m, sc.landX, topOf(w) + 24 * s, 0.55);
+    D.sfx.play('poof');
+    pop(D, 'sfx_zubo', w.x, topOf(w) - 30 * s, COL.chalk, 22);
+    yield D.tween(0.3, function (k) { w.sy = 1 - 0.3 * k; w.sx = 1 + 0.2 * k; onGround(D, w, sc.floorY); m.alpha = 1 - 0.8 * k; });
+    yield 0.7;
+    // ぷはっと顔を出す
+    w.bites.push({ x: 0, y: -18, r: 26 });
+    D.sfx.play('munch');
+    for (var i = 0; i < 6; i++) D.fx.add({ type: 'crumb', x: w.x, y: topOf(w), vx: (Math.random() - 0.5) * 120, vy: -120, g: 500, life: 0.7, size: 2.5 * s + 1, vr: 8 });
+    w.sx = w.sy = 1; onGround(D, w, sc.floorY);
+    m.alpha = 1;
+    pop(D, 'sfx_puha', w.x + 20 * s, topOf(w) - 60 * s, COL.yellow, 20);
+    yield D.hop(m, sc.landX + w.dispW() / 2 + 26 * s, sc.floorY, 30 * s, 0.5);
+    m.mouth = 'smile'; m_cheer(D);
+    yield 0.8;
+    m.mouth = null;
+    yield* walkOff(D);
+  };
+
+  // 失敗したあと：足元の線が崩れて、下にドテッ
+  A.ledgeFall = function* (D) {
+    var m = D.man, s = D.s, sc = D.sc;
+    if (sc.floorY === undefined || m.gy >= sc.floorY - 1) return;
+    yield 0.3;
+    yield* crumbleLedge(D);
+    yield fallTo(D, m, m.x + 10 * s, sc.floorY, 0.5);
+    D.sfx.play('thud');
+    D.fx.shake(8, 0.35);
+    D.fx.dust(m.x, sc.floorY, 12, { angle: -PI / 2, spread: 2.4, speed: 90, g: 200, size: 2.4 });
+    pop(D, 'sfx_dote', m.x, sc.floorY - 90 * s, COL.chalk, 22);
+    m.play('puzzled');
+    yield 0.6;
+  };
+
+  // ============================================================
+  //  6問目：雨をよけて、上（空）か下（地下）へ。穴に落ちずに進む
+  // ============================================================
+
+  // 熱で雨が湯気になり、湯気に乗って空へ（熱い → 空ルート）
+  A.steamUp = function* (D) {
+    var w = D.w, m = D.man, s = D.s, sc = D.sc;
+    w.tint = COL.red;
+    D.sfx.play('fire');
+    pop(D, 'sfx_juwa', w.x, topOf(w) - 30 * s, COL.red, 22);
+    D.follow(function () {
+      sc.shield = { x0: w.x - w.dispW(), x1: w.x + w.dispW(), y: D.st.y };
+      if (Math.random() < 0.5) D.fx.add({ type: 'steam', x: w.x + (Math.random() - 0.5) * w.dispW() * 1.4, y: topOf(w), vy: -40, life: 1.2, size: 3.4 * s, color: COL.chalk, fadeIn: true, alpha: 0.8 });
+    });
+    yield 1.2;
+    // 湯気のかたまり（雲）の上に乗る
+    var puff = { x: w.x, y: topOf(w) - 4 * s };
+    D.chalkHook(function (ctx, t) {
+      [[-1, 0, 13], [0, -6, 17], [1, 0, 13]].forEach(function (c, i) {
+        CM.chalk.circle(ctx, puff.x + c[0] * 18 * s, puff.y + c[1] * s, c[2] * s, { w: 2, alpha: 0.8, seed: i + Math.floor(t * 4) });
+      });
+    });
+    yield D.walkTo(puff.x - 6 * s, { anim: 'walk' });
+    yield D.hop(m, puff.x, puff.y - 14 * s, 20 * s, 0.4);
+    D.follow(function () { m.x = puff.x; m.gy = puff.y - 14 * s; w.x = puff.x; w.y = puff.y + 10 * s; });
+    pop(D, 'toSky', m.x, m.gy - 110 * s, COL.yellow, 20);
+    D.sfx.play('fly');
+    var y0 = puff.y;
+    yield D.tween(2.2, function (k) { puff.y = U.lerp(y0, D.st.y - 160 * s, U.easeIn(k)); puff.x += Math.sin(k * 12) * 0.6; });
+  };
+
+  /** 文字をボートにして、雨水の流れに乗って、みぞから下へ */
+  function* flowAway(D, boatW) {
+    var w = boatW || D.w, m = D.man, s = D.s, sc = D.sc;
+    sc.rain = 1.5;
+    D.sfx.play('splash');
+    pop(D, 'overflow', m.x, D.gy - 110 * s, COL.blue, 18);
+    yield D.tween(0.9, function (k) { sc.puddle = 18 * s * k; });
+    var cx = D.st.x + D.st.w * 0.78;
+    sc.crack = { x: cx, w: 44 * s, open: 0 };
+    yield D.tween(0.4, function (k) { sc.crack.open = k; });
+    // ボートに乗る
+    var wx0 = w.x;
+    yield D.tween(0.4, function (k) { w.x = U.lerp(wx0, m.x + 8 * s, k); w.y = D.gy - sc.puddle - w.dispH() * 0.2; });
+    yield D.hop(m, w.x - 4 * s, topOf(w) + 1, 16 * s, 0.35);
+    m.play('ride');
+    D.follow(function () { m.x = w.x - 4 * s; m.gy = topOf(w) + 1; });
+    var x0 = w.x, y0 = w.y;
+    yield D.tween(1.5, function (k) { w.x = U.lerp(x0, cx - 10 * s, k); w.y = y0 + Math.sin(k * 14) * 2 * s; w.rot = Math.sin(k * 10) * 0.06; });
+    pop(D, 'toUnder', cx, D.gy - 90 * s, COL.yellow, 20);
+    D.sfx.play('swirl');
+    var x1 = w.x, y1 = w.y;
+    yield D.tween(0.9, function (k) {
+      w.x = U.lerp(x1, x1 + 60 * s, k); w.y = y1 + 70 * s * k * k; w.rot = 0.5 * k;
+      w.alpha = 1 - k; m.alpha = 1 - k;
+    });
+  }
+
+  // 雨水の川に乗って、黒板の下へ流れていく（泳ぐ → 地下ルート）
+  A.flowDown = function* (D) {
+    yield* flowAway(D);
+  };
+
+  // 雨を凍らせて、氷のすべり台で下へ（冷たい → 地下ルート）
+  A.iceSlide = function* (D) {
+    var w = D.w, m = D.man, s = D.s, sc = D.sc;
+    w.tint = COL.ice;
+    D.sfx.play('freeze');
+    pop(D, 'sfx_kachi', w.x, topOf(w) - 30 * s, COL.ice, 22);
+    yield D.tween(0.8, function (k) { sc.rain = 1 - k; });
+    for (var i = 0; i < 12; i++) D.fx.add({ type: 'frost', x: D.st.x + Math.random() * D.st.w, y: D.st.y + Math.random() * D.st.h * 0.6, vy: 30, vr: 2, life: 1.5, size: 5 * s, color: COL.ice });
+    // 氷のすべり台（地面から、ななめ下のみぞへ）
+    var cx = D.st.x + D.st.w * 0.8;
+    sc.crack = { x: cx, w: 44 * s, open: 0 };
+    yield D.tween(0.4, function (k) { sc.crack.open = k; });
+    var sx0 = m.x + 20 * s;
+    D.chalkHook(function (ctx) {
+      CM.chalk.line(ctx, [sx0, D.gy - 2, cx - 18 * s, D.gy - 2, cx + 30 * s, D.gy + 40 * s], { w: 3, color: COL.ice, seed: 9 });
+    });
+    // 文字をそりにする
+    var wx0 = w.x;
+    yield D.tween(0.4, function (k) { w.x = U.lerp(wx0, sx0 + 10 * s, k); onGround(D, w); });
+    yield D.hop(m, w.x - 4 * s, topOf(w) + 1, 16 * s, 0.35);
+    m.play('ride');
+    D.follow(function () { m.x = w.x - 4 * s; m.gy = topOf(w) + 1; });
+    pop(D, 'sfx_tsuru', m.x + 60 * s, D.gy - 100 * s, COL.ice, 20);
+    D.sfx.play('whoosh');
+    var x0 = w.x, y0 = w.y;
+    yield D.tween(1.3, function (k) {
+      var e = U.easeIn(k);
+      w.x = U.lerp(x0, cx + 40 * s, e);
+      w.y = y0 + Math.max(0, w.x - (cx - 18 * s)) * 0.8;
+      w.rot = w.x > cx - 18 * s ? 0.6 : 0;
+      if (k > 0.75) { w.alpha = m.alpha = (1 - k) / 0.25; }
+    });
+  };
+
+  // 雨雲と仲良くなって、いっしょに空へ（天気・珍回答 → 空ルート）
+  A.cloudFriend = function* (D) {
+    var w = D.w, m = D.man, s = D.s, sc = D.sc, c = sc.cloud;
+    var x0 = w.x, y0 = w.y;
+    yield D.tween(1.0, function (k) { w.x = U.lerp(x0, c.w.x - c.w.dispW() * 0.6, k); w.y = U.lerp(y0, c.y, U.easeOut(k)); });
+    D.sfx.play('cute');
+    for (var i = 0; i < 6; i++) D.fx.add({ type: 'heart', x: c.w.x, y: c.y, vy: -40, vx: (Math.random() - 0.5) * 60, life: 1.2, size: 7 * s, color: COL.pink });
+    pop(D, 'sfx_nakayoshi', c.w.x, c.y - 40 * s, COL.pink, 20);
+    yield D.tween(0.8, function (k) { sc.rain = 1 - k; });
+    // 雲が降りてきて、棒人間を乗せる
+    var cy0 = c.y, cty = D.gy - 60 * s;
+    c.tx = m.x + 10 * s;
+    D.follow(function () { w.x = c.w.x - c.w.dispW() * 0.6; w.y = c.w.y; });
+    yield D.tween(1.0, function (k) { c.y = U.lerp(cy0, cty, U.easeInOut(k)); });
+    yield D.hop(m, c.w.x, c.w.y - c.w.dispH() / 2 + 4 * s, 20 * s, 0.4);
+    m.play('ride');
+    D.follow(function () { m.x = c.w.x; m.gy = c.w.y - c.w.dispH() / 2 + 4 * s; });
+    pop(D, 'toSky', m.x, m.gy - 110 * s, COL.yellow, 20);
+    D.sfx.play('fly');
+    yield D.tween(2.0, function (k) { c.y = U.lerp(cty, D.st.y - 150 * s, U.easeIn(k)); });
+  };
+
+  // 雨宿りしていたら水があふれて、建物ごと下へ流された（建物・珍回答 → 地下ルート）
+  A.houseFlow = function* (D) {
+    var w = D.w, m = D.man, s = D.s, sc = D.sc, s0 = w.scale, x0 = w.x;
+    var big = Math.min(s0 * 1.8, (D.st.w * 0.4) / w.width);
+    yield D.tween(0.6, function (k) { w.x = U.lerp(x0, m.x + 40 * s, k); w.scale = U.lerp(s0, big, U.easeBack(k)); onGround(D, w); });
+    D.sfx.play('thud');
+    sc.shield = { x0: w.x - w.dispW() / 2, x1: w.x + w.dispW() / 2, y: topOf(w) };
+    yield D.walkTo(w.x - 6 * s, { anim: 'walk' });
+    m.mouth = 'smile';
+    yield 0.6;
+    m.mouth = null;
+    sc.shield = null;
+    yield* flowAway(D);
+  };
+
   /** 喜ぶ（その場でばんざい） */
   function m_cheer(D) { D.man.play('cheer'); D.sfx.play('cheer'); }
 })(window);

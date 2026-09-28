@@ -473,6 +473,17 @@
       return { pose: plant(p, env.s, env.groundY) };
     }
   };
+  // 落ちている途中（手足をばたばた。足の先が env.groundY）
+  CM.MAN_ANIMS.flail = {
+    loop: 1,
+    frame: function (t, env) {
+      var p = stand(env.cx, 0, 1), u = t * TAU;
+      p.aF = [2.6 + 0.4 * Math.sin(u * 3), 0.4 * Math.sin(u * 4)]; p.aB = [-2.6 + 0.4 * Math.sin(u * 3 + 1), 0.4 * Math.sin(u * 4 + 2)];
+      p.lF = [0.4 * Math.sin(u * 3), -0.5]; p.lB = [-0.3 * Math.sin(u * 3 + 1), -0.4];
+      p.lean = -0.1; p.mouth = 'o'; p.eyes = 'wide';
+      return { pose: plant(p, env.s, env.groundY) };
+    }
+  };
   // 掘る：シャベルのように、前でザクザク
   CM.MAN_ANIMS.dig = {
     loop: 0.7,

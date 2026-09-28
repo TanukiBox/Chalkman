@@ -35,54 +35,68 @@
  *     variants: { drink: { act: 'drink', ja: '…', en: '…' } }
  *
  * ■ route：分岐の問題で、進むルート（'sky'＝空ルート／'under'＝地下ルート）
+ *
+ * ■ failAfter：失敗したとき、共通反応のあとに続けて起きること（なくてもよい）
+ *     failAfter: { act: 'ledgeFall', ja: '…足元の線が崩れて、下にドテッ！', en: '…' }
  */
 (function (global) {
   'use strict';
   var CM = global.CM = global.CM || {};
 
+  // ------------------------------------------------------------
+  // ストーリー（試遊版で決定）
+  //   理科の授業「水のゆくえ」が終わった放課後。黒板には山・川・海・雲の図が残っている。
+  //   その図のすみに、だれかが落書きした棒人間が動き出した。
+  //   明日の朝、日直が黒板を消してしまう。棒人間は、教室に置き忘れられた自由帳へ逃げこむ。
+  //   第1章：放課後の黒板（授業の図のはし → 図の雨雲で「蒸発して空へ」か「しみこんで地下へ」に分かれる）
+  //   第2章：空ルート（雲・雷・風・星）／地下ルート（地下水・洞窟）
+  //   第3章：翌朝。黒板消しが迫る前に、自由帳（出口）へ。最後に、描いてくれた子へ書き置きを残す
+  // ------------------------------------------------------------
   CM.CHAPTERS = {
-    1: { ja: '第1章　教室の黒板', en: 'Chapter 1: The Classroom Board' }
+    1: { ja: '第1章　放課後の黒板', en: 'Chapter 1: The Board After School' }
   };
+  CM.TOTAL_PROBLEMS = 20;   // 全部で何問か（黒板の地図に使う）
 
   CM.PROBLEMS = [
     // ------------------------------------------------------------
-    // 1問目：足元に地面がない
+    // 1問目：足元に地面がない（図のはしの高い所。足元の線が崩れかけ → 下の地面まで無事に降りる）
     // ------------------------------------------------------------
     {
-      id: 'c1q1', chapter: 1, scene: 'noGround',
-      title: { ja: '足元に地面がない', en: 'No ground ahead' },
+      id: 'c1q1', chapter: 1, scene: 'ledge',
+      title: { ja: '足元の線が消えかけ', en: 'The line is crumbling' },
       text: {
-        ja: '放課後の黒板で、棒人間が動き出した。でも立っているのは短いチョークの線の上だけ。この先には地面がない！',
-        en: 'After school, a stickman on the blackboard came to life. But it is standing on a tiny chalk line, and there is no ground ahead!'
+        ja: '棒人間が落書きされたのは、図のはしの高い所。足元の線がぽろぽろ崩れはじめた！ このまま落ちたら、下の地面にドテッ。',
+        en: 'The stickman was doodled high up at the edge of the diagram, and the line under its feet is crumbling! One wrong step and it will hit the ground hard.'
       },
       rules: [
-        { tag: 'long', result: 'success', act: 'extend',
-          ja: '「{w}」がぐーんとのびて、道になった！ 棒人間は歩き出した。',
-          en: 'The {w} stretched out into a long path! Off the stickman goes.' },
-        { tag: 'fly', result: 'success', act: 'ride',
-          ja: '「{w}」に乗って、ふわふわと先へ進んだ！',
-          en: 'Hopped on the {w} and floated onward!' },
-        { tag: 'hard', result: 'success', act: 'stepping',
-          ja: 'かたい「{w}」をいくつも並べて、足場にした！',
-          en: 'Lined up a row of hard {w} as stepping stones!' },
-        { sub: 'land', result: 'success', act: 'floor',
-          ja: '「{w}」がドスンと置かれて、地面になった！ 棒人間は歩き出した。',
-          en: 'The {w} landed with a thud and became solid ground! Off the stickman goes.' },
-        { cat: 'person', result: 'funny', act: 'carry',
-          ja: '「{w}」がやって来て、棒人間をおんぶして運んでくれた！',
-          en: 'The {w} showed up and gave the stickman a piggyback ride!' }
-      ]
+        { tag: 'edible', result: 'funny', act: 'plunge',
+          ja: '落ちた先は「{w}」の上。頭からずぼっ！ …おいしい着地だった。',
+          en: 'Landed head-first in the {w}. Splat! ...A delicious landing.' },
+        { tag: 'soft', result: 'success', act: 'cushion',
+          ja: '「{w}」がクッションになって、ぽよんと着地！',
+          en: 'The {w} made a soft cushion. Boing, safe landing!' },
+        { tag: 'fly', result: 'success', act: 'catch',
+          ja: '落ちる棒人間を「{w}」が空中でキャッチ。ふわりと下まで運んでくれた！',
+          en: 'The {w} caught the falling stickman in midair and floated it down!' },
+        { tag: 'big', result: 'success', act: 'tower',
+          ja: '大きな「{w}」が足場になった。乗ったまま小さくなって、地面まで降ろしてくれた！',
+          en: 'The big {w} became a platform, then shrank and set the stickman down gently!' },
+        { tag: 'swim', result: 'success', act: 'splash',
+          ja: '「{w}」のおかげで、水の中にばしゃーんと着地！ 泳いで岸に上がった。',
+          en: 'Thanks to the {w}, it splashed down into water and swam ashore!' }
+      ],
+      failAfter: { act: 'ledgeFall', ja: '…そのとき足元の線が崩れて、下にドテッ！', en: '...Then the line gave way. THUD!' }
     },
 
     // ------------------------------------------------------------
-    // 2問目：暗くて前が見えない
+    // 2問目：暗くて前が見えない（日直が電気を消して帰った）
     // ------------------------------------------------------------
     {
       id: 'c1q2', chapter: 1, scene: 'dark',
-      title: { ja: '暗くて前が見えない', en: 'Too dark to see' },
+      title: { ja: '真っ暗で見えない', en: 'Lights out' },
       text: {
-        ja: 'だれかが教室の電気を消した。あたりは真っ暗で、前がまったく見えない！',
-        en: 'Someone switched off the classroom lights. It is pitch black and the stickman cannot see a thing!'
+        ja: '日直が教室の電気を消して帰ってしまった。黒板の上は真っ暗で、前がまったく見えない！',
+        en: 'The class monitor switched off the lights and went home. The board is pitch black!'
       },
       rules: [
         { tag: 'glow', result: 'success', act: 'light',
@@ -98,25 +112,25 @@
     },
 
     // ------------------------------------------------------------
-    // 3問目：崖の向こうへ渡りたい
+    // 3問目：崖の向こうへ渡りたい（先生が描いた山の図の「谷」）
     // ------------------------------------------------------------
     {
       id: 'c1q3', chapter: 1, scene: 'cliff',
-      title: { ja: '崖の向こうへ渡りたい', en: 'Cross the cliff' },
+      title: { ja: '図の「谷」を渡りたい', en: 'Across the valley' },
       text: {
-        ja: '目の前に、黒板のひび割れみたいな深い崖。向こう側へ渡りたい！',
-        en: 'A deep cliff, like a crack in the blackboard, blocks the way. Time to get across!'
+        ja: '先生が描いた山の図。その間の深い「谷」を渡らないと、先へ進めない！',
+        en: 'The teacher\'s mountain diagram has a deep "valley" in the middle. Time to get across!'
       },
       rules: [
         { tag: 'fly', result: 'success', act: 'ride',
-          ja: '「{w}」に乗って、ふわりと崖を飛びこえた！',
-          en: 'Rode the {w} and floated over the cliff!' },
+          ja: '「{w}」に乗って、ふわりと谷を飛びこえた！',
+          en: 'Rode the {w} and floated over the valley!' },
         { tag: 'long', result: 'success', act: 'extend',
-          ja: '「{w}」がのびて、崖の向こうまで届いた！ その上を渡った。',
+          ja: '「{w}」がのびて、谷の向こうまで届いた！ その上を渡った。',
           en: 'The {w} stretched all the way across, and the stickman walked over it!' },
         { sub: 'building', result: 'success', act: 'bridge',
-          ja: '「{w}」が崖にかかって、橋になった！',
-          en: 'The {w} fell across the gap and became a bridge!' },
+          ja: '「{w}」が谷にかかって、橋になった！',
+          en: 'The {w} fell across the valley and became a bridge!' },
         { sub: 'bug', result: 'funny', act: 'swarm',
           ja: '「{w}」の大群がやって来て、つながって橋になった！',
           en: 'A swarm of {w} marched in and linked up into a bridge!' }
@@ -124,14 +138,14 @@
     },
 
     // ------------------------------------------------------------
-    // 4問目：お腹がすいた
+    // 4問目：お腹がすいた（黒板のすみに今日の給食の献立）
     // ------------------------------------------------------------
     {
       id: 'c1q4', chapter: 1, scene: 'hungry',
-      title: { ja: 'お腹がすいた', en: 'So hungry' },
+      title: { ja: 'おなかがすいた', en: 'So hungry' },
       text: {
-        ja: 'ぐぅ〜。棒人間のおなかが鳴った。何か食べないと、もう歩けない…',
-        en: 'Grrrumble. The stickman\'s tummy is growling. It can\'t walk another step without a snack...'
+        ja: 'ぐぅ〜。黒板のすみに、今日の給食の献立がまだ残っている。見ていたら、おなかが鳴ってきた…',
+        en: 'Grrrumble. Today\'s lunch menu is still written in the corner of the board. Just looking at it makes the stickman hungry...'
       },
       rules: [
         { tag: 'edible', result: 'success', act: 'eat',
@@ -153,60 +167,63 @@
     },
 
     // ------------------------------------------------------------
-    // 5問目：犬に吠えられる
+    // 5問目：犬に吠えられる（となりの席の子の落書きの「犬」）
     // ------------------------------------------------------------
     {
       id: 'c1q5', chapter: 1, scene: 'dog',
-      title: { ja: 'イヌに吠えられる', en: 'A barking dog' },
+      title: { ja: 'となりの席の落書き', en: 'The doodle next door' },
       text: {
-        ja: 'だれかが描いた「イヌ」が道をふさいで、ワンワン吠えている！',
-        en: 'Someone drew a "DOG", and it is blocking the path, barking like crazy!'
+        ja: 'となりの席の子が落書きした「犬」が、道をふさいでワンワン吠えている！',
+        en: 'A "DOG" doodled by the kid in the next seat is blocking the path, barking like crazy!'
       },
       rules: [
         { tag: 'cute', result: 'success', act: 'charm',
-          ja: 'かわいい「{w}」に、イヌもメロメロ。道をあけてくれた！',
+          ja: 'かわいい「{w}」に、犬もメロメロ。道をあけてくれた！',
           en: 'The DOG melted at the cute {w} and stepped aside!' },
         { tag: 'sound', result: 'success', act: 'scare',
-          ja: '「{w}」の大きな音に、イヌはびっくりして逃げていった！',
+          ja: '「{w}」の大きな音に、犬はびっくりして逃げていった！',
           en: 'The {w} made a loud noise, and the DOG ran away!' },
         { tag: 'edible', result: 'success', act: 'feed',
-          ja: '「{w}」を投げると、イヌは夢中で食べはじめた！ そのすきに通りぬけた。',
+          ja: '「{w}」を投げると、犬は夢中で食べはじめた！ そのすきに通りぬけた。',
           en: 'Tossed the {w}. While the DOG was busy eating, the stickman slipped past!' },
         { sub: 'toy', result: 'success', act: 'fetch',
-          ja: '「{w}」を遠くへ投げると、イヌは追いかけていった！',
+          ja: '「{w}」を遠くへ投げると、犬は追いかけていった！',
           en: 'Threw the {w} far away, and the DOG chased after it!' },
         { sub: 'animal', result: 'funny', act: 'playmate',
-          ja: '「{w}」とイヌが仲良くなって、いっしょに遊びに行ってしまった！',
+          ja: '「{w}」と犬が仲良くなって、いっしょに遊びに行ってしまった！',
           en: 'The {w} and the DOG became friends and ran off to play!' }
       ]
     },
 
     // ------------------------------------------------------------
-    // 6問目：大きな雨雲が来る（分岐：飛ぶ＝空ルート／それ以外＝地下ルート）
+    // 6問目：大きな雨雲が来る（図の雨雲。分岐：上へ＝空ルート／下へ＝地下ルート。穴に落ちずに進む）
     // ------------------------------------------------------------
     {
       id: 'c1q6', chapter: 1, scene: 'rain',
-      title: { ja: '大きな雨雲が来る', en: 'A huge rain cloud' },
+      title: { ja: '図の雨雲が動き出した', en: 'The rain cloud moves' },
       text: {
-        ja: '大きな「あまぐも」がやって来た！ 雨にぬれたら、チョークが流されてしまう。上へ逃げる？ 下へ逃げる？',
-        en: 'A huge "RAIN CLOUD" is rolling in! Rain will wash the chalk away. Escape up high, or down below?'
+        ja: '図に描かれた「雨雲」が、ゴロゴロ動き出した！ 雨にぬれたら、チョークが流されてしまう。上へのがれる？ それとも下へ？',
+        en: 'The "RAIN CLOUD" in the diagram started to move! Rain will wash the chalk away. Escape up, or down?'
       },
       rules: [
         { tag: 'fly', result: 'success', act: 'rise', route: 'sky',
           ja: '「{w}」に乗って、雲の上まで飛んでいった！',
           en: 'Rode the {w} all the way above the clouds!' },
-        { tag: 'hard', result: 'success', act: 'dig', route: 'under',
-          ja: 'かたい「{w}」で地面を掘って、穴の中へ逃げこんだ！',
-          en: 'Dug a hole with the hard {w} and escaped underground!' },
-        { tag: 'swim', result: 'funny', act: 'swimDown', route: 'under',
-          ja: '「{w}」と水たまりで泳いでいたら、そのまま地下へ流されていった！',
-          en: 'Went for a swim in the puddles with the {w}... and got washed down underground!' },
-        { sub: 'building', result: 'success', act: 'shelter', route: 'under',
-          ja: '「{w}」に逃げこむと、床に地下へ続く穴があった！',
-          en: 'Ran into the {w} and found a hole leading underground!' },
-        { word: '傘', result: 'success', act: 'umbrella', route: 'under',
-          ja: '「{w}」をさして歩くと、雨宿りできる穴を見つけた！',
-          en: 'Walked under the {w} and found a hole to wait out the rain!' }
+        { tag: 'hot', result: 'success', act: 'steamUp', route: 'sky',
+          ja: '「{w}」の熱で、雨が湯気になった！ 湯気に乗って、空へのぼっていく。',
+          en: 'The heat of the {w} turned the rain into steam! The stickman rode the steam up into the sky.' },
+        { tag: 'swim', result: 'success', act: 'flowDown', route: 'under',
+          ja: '「{w}」をボートにして、雨水の流れに乗った！ みぞを通って、黒板の下のほうへ。',
+          en: 'Used the {w} as a boat and rode the rainwater down a gutter to the bottom of the board!' },
+        { tag: 'cold', result: 'success', act: 'iceSlide', route: 'under',
+          ja: '「{w}」の冷たさで、雨がカチコチに凍った！ 氷のすべり台で、下へつるーん。',
+          en: 'The cold {w} froze the rain solid! Wheee, down the ice slide!' },
+        { sub: 'weather', result: 'funny', act: 'cloudFriend', route: 'sky',
+          ja: '「{w}」と雨雲が仲良くなった。雨がやんで、雲に乗せてもらって空へ！',
+          en: 'The {w} and the rain cloud became friends. The rain stopped, and the cloud gave the stickman a ride up!' },
+        { sub: 'building', result: 'funny', act: 'houseFlow', route: 'under',
+          ja: '「{w}」で雨宿りしていたら、水があふれて「{w}」ごと下へ流された！',
+          en: 'Took shelter in the {w}... until the water rose and washed the whole {w} downstream!' }
       ]
     }
   ];

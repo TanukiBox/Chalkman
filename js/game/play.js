@@ -154,7 +154,7 @@
     var P = {
       state: 'title', D: null, sceneId: 'title', prob: null,
       word: null, writer: null, phase: 'none', phaseT: 0, fly: null,
-      result: null, msg: '', msgKind: '', ngT: -1, wipe: null, fadeIn: 1, stamp: null, busy: false,
+      result: null, msg: '', msgKind: '', ngT: -1, trans: null, fadeIn: 1, stamp: null, busy: false, failAfterDone: false,
       time: 0, overT: 0
     };
     var ui = {};
@@ -167,39 +167,60 @@
       var D = makeDirector(app, sceneId);
       var S = CM.SCENES[sceneId];
       S.setup(D.sc, D);
-      if (sceneId === 'hungry') D.sc.hungry = true;
+      // シーンによっては、棒人間の立つ高さ（地面）が違う（1問目の高い所など）
+      if (D.sc.gy !== undefined) D.gy = D.sc.gy;
+      if (D.sc.floorY === undefined) D.sc.floorY = D.gy;
+      D.man.gy = D.gy;
       D.man.x = D.sc.manX;
       D.man.play(D.sc.manAnim || 'idle');
       P.D = D;
       P.word = null; P.phase = 'none'; P.stamp = null;
     }
-    /** 黒板消しでステージを拭いてから、次へ */
-    function wipeTo(then, dur) {
-      P.wipe = { t: 0, dur: dur || 0.9, then: then, done: false };
-      app.sfx.play('wipe');
+    /**
+     * 場面の切りかえ
+     *   'scroll'：棒人間が右へ歩いていくと、黒板が横に流れて次の場所が見えてくる（新しい場面には左から歩いて入る）
+     *   'fade'  ：ふわっと切りかえる（やり直し・タイトルなど）
+     */
+    function transitionTo(type, then) {
+      if (type === 'scroll' && P.D) {
+        var old = { D: P.D, sceneId: P.sceneId };
+        then();
+        P.trans = { type: 'scroll', t: 0, dur: 1.1, old: old };
+        var D = P.D, tx = D.man.x, anim = D.sc.manAnim || 'idle';
+        D.man.x = D.st.x - 40 * D.s;
+        D.intro = { it: (function* () { yield 0.7; yield D.walkTo(tx, { anim: 'walk' }); D.man.play(anim); })(), wait: 0, done: false };
+      } else {
+        P.trans = { type: 'fade', t: 0, dur: 0.3, then: then, done: false };
+      }
     }
 
     // ---- 冒険の流れ ----
     function newGame() {
       run = { chapter: 1, q: 0, funny: 0, lastFunny: null, route: null, words: 0 };
       meter.set(CFG.CHALK_START);
-      goProblem(0);
+      // プロローグ：理科の授業の図と、すみの落書きの棒人間
+      transitionTo('fade', function () {
+        setScene('prologue', null);
+        P.D.man.alpha = 0;
+        P.state = 'prologue';
+        buildPad();
+      });
     }
-    function goProblem(i) {
+    function goProblem(i, how) {
       var list = chapterProblems(run.chapter);
       run.q = i;
-      wipeTo(function () {
+      transitionTo(how || 'scroll', function () {
         setScene(list[i].scene, list[i]);
         P.state = 'input'; P.msg = ''; P.result = null;
         buildPad();
       });
     }
     function retry() {
-      wipeTo(function () {
+      transitionTo('fade', function () {
         setScene(P.prob.scene, P.prob);
         P.state = 'input'; P.result = null;
         buildPad();
-      }, 0.6);
+      });
     }
     function nextProblem() {
       var list = chapterProblems(run.chapter);
@@ -207,7 +228,7 @@
       else chapterClear();
     }
     function chapterClear() {
-      wipeTo(function () {
+      transitionTo('fade', function () {
         setScene('title', null);
         P.D.sc.hideTitle = true;
         P.D.man.x = P.D.st.x + P.D.st.w * 0.5;
@@ -224,7 +245,7 @@
       });
     }
     function toTitle() {
-      wipeTo(function () { setScene('title', null); P.state = 'title'; buildPad(); });
+      transitionTo('fade', function () { setScene('title', null); P.state = 'title'; buildPad(); });
     }
 
     // ---- 書く ----
@@ -327,6 +348,7 @@
       D.w = P.word;
       D.kind = r.kind;
       P.phase = 'act';
+      P.failAfterDone = false;
       P.word = null;
       D.man.play(D.sc.manAnim === 'hungry' ? 'hungry' : 'idle');
       var act = CM.ACTS[r.act] || CM.ACTS.fizzle;
@@ -356,6 +378,12 @@
         P.state = 'result';
         P.busy = false;
         buildPad();
+      } else if (kind === 'fail' && P.prob && P.prob.failAfter && !P.failAfterDone && CM.ACTS[P.prob.failAfter.act]) {
+        // 失敗したあとに続けて起きること（1問目：足元の線が崩れてドテッ）
+        P.failAfterDone = true;
+        P.phase = 'act';
+        D.thread = { it: CM.ACTS[P.prob.failAfter.act](D), wait: 0, done: false };
+        return;
       } else if (kind === 'fail' || kind === 'pinch') {
         P.stamp = { key: kind === 'pinch' ? 'stamp_pinch' : 'stamp_fail', color: COL.red, t: 0 };
         if (D.man.alpha > 0 && D.man.x < D.st.x + D.st.w) D.man.play('puzzled');
@@ -438,7 +466,10 @@
       padEl.innerHTML = '';
       ui.slate = null; ui.input = null;
       var st = P.state;
-      if (st === 'title') {
+      if (st === 'prologue') {
+        ['prologue1', 'prologue2', 'prologue3'].forEach(function (k) { padEl.appendChild(el('p', 'prompt', T(k))); });
+        padEl.appendChild(btn(T('depart'), 'big', function () { app.sfx.play('ui'); goProblem(0, 'scroll'); }));
+      } else if (st === 'title') {
         padEl.appendChild(el('p', 'prompt', T('titleNote')));
         padEl.appendChild(btn(T('start'), 'big', function () { app.sfx.play('ui'); newGame(); }));
         padEl.appendChild(btn(T('toLab'), 'small', function () { app.sfx.play('ui'); app.go('lab'); }));
@@ -448,7 +479,9 @@
         if (st === 'result') {
           var r = P.result, kind = r.kind;
           padEl.appendChild(el('p', 'rmain k-' + kind, T('kind_' + kind)));
-          padEl.appendChild(el('p', 'rmsg big', CM.fillWord(r.reaction[app.i18n.lang], r.text)));
+          var msg = CM.fillWord(r.reaction[app.i18n.lang], r.text);
+          if (kind === 'fail' && P.prob.failAfter) msg += P.prob.failAfter[app.i18n.lang];
+          padEl.appendChild(el('p', 'rmsg big', msg));
           if (kind === 'success' || kind === 'funny') padEl.appendChild(btn(T('next'), 'big', function () { app.sfx.play('ui'); nextProblem(); }));
           else padEl.appendChild(btn(T('retryBtn'), 'big', function () { app.sfx.play('ui'); retry(); }));
         } else {
@@ -490,16 +523,18 @@
       },
       relayout: function () {
         // 入力を待っている間なら、新しい大きさで黒板を並べ直す
-        if (P.D && (P.state === 'input' || P.state === 'title') && !P.busy && !P.wipe) setScene(P.sceneId, P.prob);
+        if (P.D && (P.state === 'input' || P.state === 'title' || P.state === 'prologue') && !P.busy && !P.trans) setScene(P.sceneId, P.prob);
       },
       update: function (dt) {
         P.time += dt;
         var D = P.D;
-        if (P.wipe) {
-          var wp = P.wipe;
-          wp.t += dt;
-          if (!wp.done && wp.t >= wp.dur) { wp.done = true; wp.then(); P.fadeIn = 0; D = P.D; }
-          if (wp.t >= wp.dur + 0.1) P.wipe = null;
+        if (P.trans) {
+          var tr = P.trans;
+          tr.t += dt;
+          if (tr.type === 'fade') {
+            if (!tr.done && tr.t >= tr.dur) { tr.done = true; tr.then(); P.fadeIn = 0; D = P.D; }
+            if (tr.t >= tr.dur + 0.05) P.trans = null;
+          } else if (tr.t >= tr.dur) P.trans = null;
         }
         P.fadeIn = Math.min(1, P.fadeIn + dt * 2.5);
         if (P.stamp) P.stamp.t += dt;
@@ -514,6 +549,9 @@
         var S = CM.SCENES[P.sceneId];
         if (S.update) S.update(D.sc, dt, D);
         updateWriting(dt);
+        if (D.intro) { stepThread(D.intro, dt); if (D.intro.done) D.intro = null; }
+        // プロローグ：落書きの棒人間が、すーっと浮かび上がる
+        if (P.state === 'prologue' && D.man.alpha < 1) D.man.alpha = Math.min(1, D.man.alpha + dt * 0.7);
         if (P.phase === 'act' && D.thread) {
           stepThread(D.thread, dt);
           if (D.thread.done) actFinished();
@@ -534,30 +572,14 @@
       drawChalk: function (ctx) {
         var D = P.D, L = app.L, st = L.stage;
         if (!D) return;
-        var S = CM.SCENES[P.sceneId];
         ctx.save();
         ctx.beginPath(); ctx.rect(st.x, st.y, st.w, st.h); ctx.clip();
-        if (S.drawChalk) S.drawChalk(ctx, D.sc, D);
-        D.chalkHooks.forEach(function (h) { h(ctx, D.time); });
-        D.copies.forEach(function (c) { c.draw(ctx); });
-        // 棒人間（と、手に持った文字）
-        D.actors.forEach(function (a) {
-          if (!a.frame) return;
-          var j = CM.drawMan(ctx, a.frame.pose, D.s, D.time, { color: a.color });
-          a.joints = j;
-          var ex = a.frame.extras || {};
-          if (ex.eraseFrom !== undefined && ex.eraseFrom !== null && P.state === 'dying') {
-            ctx.save(); ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = '#000';
-            ctx.fillRect(ex.eraseFrom, ex.eraseBox.y0, st.x + st.w - ex.eraseFrom + 50, ex.eraseBox.y1 - ex.eraseBox.y0);
-            ctx.restore();
-          }
-          if (a === D.man && D.held === 'swing' && ex.trail) CM.props.trail(ctx, j, D.s, ex.trail, (CM.BODY.uarm + CM.BODY.farm) * D.s + 60 * D.s);
-        });
-        if (D.w && D.wordVisible) {
-          if (D.held && D.man.joints) placeHeld(D);
-          D.w.draw(ctx);
-        }
-        if (S.drawFront) S.drawFront(ctx, D.sc, D);
+        if (P.trans && P.trans.type === 'scroll') {
+          // 黒板が横に流れる：前の場所は左へ、次の場所は右から
+          var k = U.easeInOut(Math.min(1, P.trans.t / P.trans.dur));
+          ctx.save(); ctx.translate(-k * st.w, 0); stageChalk(ctx, P.trans.old.D, P.trans.old.sceneId); ctx.restore();
+          ctx.save(); ctx.translate((1 - k) * st.w, 0); stageChalk(ctx, D, P.sceneId); ctx.restore();
+        } else stageChalk(ctx, D, P.sceneId);
         ctx.restore();
         // 書く欄
         if (ui.slate) {
@@ -573,51 +595,112 @@
       drawReal: function (ctx) {
         var D = P.D, L = app.L, st = L.stage;
         if (!D) return;
-        var S = CM.SCENES[P.sceneId];
-        if (S.drawReal) S.drawReal(ctx, D.sc, D);
-        D.realHooks.forEach(function (h) { h(ctx, D.time); });
-        // 見出し（暗やみの上にも見えるように、ここで描く）
-        if (P.prob && run) {
+        ctx.save();
+        ctx.beginPath(); ctx.rect(st.x, st.y, st.w, st.h); ctx.clip();
+        if (P.trans && P.trans.type === 'scroll') {
+          var k = U.easeInOut(Math.min(1, P.trans.t / P.trans.dur));
+          ctx.save(); ctx.translate(-k * st.w, 0); stageReal(ctx, P.trans.old.D, P.trans.old.sceneId); ctx.restore();
+          ctx.save(); ctx.translate((1 - k) * st.w, 0); stageReal(ctx, D, P.sceneId); ctx.restore();
+        } else stageReal(ctx, D, P.sceneId);
+        ctx.restore();
+        // 見出しと、黒板の地図（暗やみの上にも見えるように、ここで描く）
+        if (P.prob && run && P.state !== 'prologue') {
           CM.chalk.text(ctx, (run.q + 1) + '. ' + P.prob.title[app.i18n.lang], st.x + 14, st.y + 22, { size: 18, align: 'left', color: COL.yellow, maxW: st.w - 170 });
+          drawMap(ctx, st, run.q);
         }
-        // 結果のはんこ（暗やみの上にも見えるように、ここで描く）
+        // 結果のはんこ
         if (P.stamp) {
-          var k = U.easeBack(U.clamp(P.stamp.t / 0.35, 0, 1));
+          var ks = U.easeBack(U.clamp(P.stamp.t / 0.35, 0, 1));
           var sz = Math.min(44, st.w / 9);
           ctx.save();
           ctx.translate(st.x + st.w / 2, st.y + st.h * (P.state === 'clear' ? 0.3 : 0.45));
           ctx.rotate(-0.08);
-          ctx.scale(k, k);
+          ctx.scale(ks, ks);
           CM.chalk.text(ctx, T(P.stamp.key), 0, 0, { size: sz, color: P.stamp.color, maxW: st.w * 0.9 });
           if (P.stamp.key === 'gameOver') CM.chalk.text(ctx, T('end8'), 0, sz, { size: sz * 0.45, color: COL.chalk, maxW: st.w * 0.9 });
           ctx.restore();
         }
-        var ex = (D.man.frame && D.man.frame.extras) || {};
-        ctx.save();
-        ctx.beginPath(); ctx.rect(L.board.x, L.board.y, L.board.w, L.board.h); ctx.clip();
-        if (P.state === 'dying' || P.state === 'over') {
-          if (ex.smear) CM.props.realSmear(ctx, ex.smear, D.s);
-          if (ex.eraser) CM.props.realEraser(ctx, ex.eraser);
-        }
-        if (D.eraser) CM.props.realEraser(ctx, D.eraser);
-        ctx.restore();
         if (P.phase === 'writing' && P.writer) P.writer.drawTip(ctx);
         // NG：書く欄を黒板消しが拭く
         if (P.ngT >= 0 && P.ngT < 0.75) {
-          var sr = slateRect(), k = U.easeInOut(P.ngT / 0.75);
-          CM.props.realEraser(ctx, { x: U.lerp(sr.x + sr.w + 30, sr.x - 30, k), y: sr.y + sr.h / 2 + Math.sin(P.ngT * 30) * 4, rot: 0.05, s: Math.max(0.9, sr.h / 40) });
+          var sr = slateRect(), kn = U.easeInOut(P.ngT / 0.75);
+          CM.props.realEraser(ctx, { x: U.lerp(sr.x + sr.w + 30, sr.x - 30, kn), y: sr.y + sr.h / 2 + Math.sin(P.ngT * 30) * 4, rot: 0.05, s: Math.max(0.9, sr.h / 40) });
         }
-        // 場面の切りかえ：黒板消しが通ったところを消す → 新しい場面がふわっと出る
-        if (P.wipe && !P.wipe.done) {
-          var p = U.easeInOut(Math.min(1, P.wipe.t / P.wipe.dur));
-          var ex2 = U.lerp(st.x - 60, st.x + st.w + 60, p);
-          app.drawBoardPatch(ctx, st.x, st.y, Math.max(0, ex2 - st.x), st.h, 1);
-          CM.props.realEraser(ctx, { x: ex2, y: st.y + st.h * 0.5 + Math.sin(P.wipe.t * 18) * st.h * 0.3, rot: 1.5, s: Math.max(1, st.h / 180) });
+        // ふわっと切りかえ
+        if (P.trans && P.trans.type === 'fade' && !P.trans.done) {
+          app.drawBoardPatch(ctx, st.x, st.y, st.w, st.h, Math.min(1, P.trans.t / P.trans.dur));
         } else if (P.fadeIn < 1) {
           app.drawBoardPatch(ctx, st.x, st.y, st.w, st.h, 1 - P.fadeIn);
         }
       }
     };
+
+    /** ステージのチョークで描く物（シーン・文字・棒人間） */
+    function stageChalk(ctx, D, sceneId) {
+      var S = CM.SCENES[sceneId], st = D.st;
+      if (S.drawChalk) S.drawChalk(ctx, D.sc, D);
+      D.chalkHooks.forEach(function (h) { h(ctx, D.time); });
+      D.copies.forEach(function (c) { c.draw(ctx); });
+      // 棒人間（と、手に持った文字）
+      D.actors.forEach(function (a) {
+        if (!a.frame) return;
+        var j = CM.drawMan(ctx, a.frame.pose, D.s, D.time, { color: a.color });
+        a.joints = j;
+        var ex = a.frame.extras || {};
+        if (ex.eraseFrom !== undefined && ex.eraseFrom !== null && (P.state === 'dying' || P.state === 'over') && D === P.D) {
+          ctx.save(); ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = '#000';
+          ctx.fillRect(ex.eraseFrom, ex.eraseBox.y0, st.x + st.w - ex.eraseFrom + 50, ex.eraseBox.y1 - ex.eraseBox.y0);
+          ctx.restore();
+        }
+        if (a === D.man && D.held === 'swing' && ex.trail) CM.props.trail(ctx, j, D.s, ex.trail, (CM.BODY.uarm + CM.BODY.farm) * D.s + 60 * D.s);
+      });
+      if (D.w && D.wordVisible) {
+        if (D.held && D.man.joints) placeHeld(D);
+        D.w.draw(ctx);
+      }
+      if (S.drawFront) S.drawFront(ctx, D.sc, D);
+    }
+
+    /** ステージの上に重ねる物（暗やみ・黒板消し など） */
+    function stageReal(ctx, D, sceneId) {
+      var S = CM.SCENES[sceneId], L = app.L;
+      if (S.drawReal) S.drawReal(ctx, D.sc, D);
+      D.realHooks.forEach(function (h) { h(ctx, D.time); });
+      var ex = (D.man.frame && D.man.frame.extras) || {};
+      if ((P.state === 'dying' || P.state === 'over') && D === P.D) {
+        if (ex.smear) CM.props.realSmear(ctx, ex.smear, D.s);
+        if (ex.eraser) CM.props.realEraser(ctx, ex.eraser);
+      }
+      if (D.eraser) CM.props.realEraser(ctx, D.eraser);
+    }
+
+    /** 黒板の地図：全20問の中で、今どこにいるか（右はしが自由帳＝出口） */
+    function drawMap(ctx, st, q) {
+      var total = CM.TOTAL_PROBLEMS || 20, groups = [6, 7, 7];
+      var sp = Math.min(11, (st.w * 0.5) / (total + 2)), x = st.x + 16, y = st.y + 46;
+      var pts = [], i = 0;
+      groups.forEach(function (n, g) {
+        for (var k = 0; k < n; k++, i++) pts.push(x + i * sp + g * sp * 0.8);
+      });
+      var endX = pts[pts.length - 1] + sp * 1.6;
+      CM.chalk.line(ctx, [pts[0], y, endX, y], { w: 1.2, alpha: 0.35, seed: 3, wob: 0.3 });
+      pts.forEach(function (px, k) {
+        if (k === q) CM.chalk.circle(ctx, px, y, 4, { w: 2, color: COL.yellow, seed: 7 });
+        else {
+          ctx.save();
+          ctx.globalAlpha = k < q ? 0.85 : 0.35;
+          ctx.fillStyle = COL.chalk;
+          ctx.beginPath(); ctx.arc(px, y, k < q ? 2.4 : 1.8, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+      });
+      // 自由帳（出口）
+      ctx.save();
+      ctx.strokeStyle = COL.chalk; ctx.globalAlpha = 0.7; ctx.lineWidth = 1.4;
+      ctx.strokeRect(endX, y - 6, 9, 12);
+      ctx.restore();
+      CM.chalk.text(ctx, T('mapGoal'), endX + 14, y, { size: 12, align: 'left', alpha: 0.7 });
+    }
 
     /** 手に持った文字の位置 */
     function placeHeld(D) {
