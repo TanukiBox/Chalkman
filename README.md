@@ -38,7 +38,7 @@
 | `js/game/scenes-ch3.js` / `js/game/acts-ch3.js` | 第3章の黒板の様子と演出、エンディングの画面 |
 | `js/game/acts-fail.js` | 失敗のバリエーション（共通反応） |
 | `js/data/endings.js` | エンディング8種類の名前・文章・ヒント |
-| `js/game/extras.js` | エンディング回収画面・シェア（文章と画像） |
+| `js/game/extras.js` | エンディング回収画面・答え図鑑・シェア（文章と画像） |
 | `js/game/judge.js` | 単語の判定（表記ゆれ・判定の順番） |
 | `js/game/config.js` | 調整用の数字（チョーク残量のルール、画面の割合、書く速さ）と色 |
 | `js/game/lang.js` | 画面の文字（日本語・英語） |
@@ -50,12 +50,14 @@
 | `js/game/tags.js` | 性質タグ15種類の動き方 |
 | `js/game/gauge.js` | チョーク残量（体力） |
 | `js/game/sfx.js` | 効果音（カツカツ・ドスン など。すべてその場で作る） |
+| `js/game/bgm.js` | BGM（場面ごとの5曲。楽譜を書き足せる。すべてその場で演奏する） |
 | `js/game/fx.js` | 粉・音の文字・ハートなどの小さな演出、画面のゆれ |
 | `js/game/lab.js` | 確認用の画面 |
 | `js/game/main.js` | 起動・画面サイズ合わせ・毎フレームの描画 |
 | `tools/check-dict.js` | 辞書を調べる（`node tools/check-dict.js`：語数・かぶり・タグの書き間違い） |
 | `tools/test-judge.js` | 判定の自動テスト（`node tools/test-judge.js`） |
 | `tools/check-problems.js` | 問題データを調べる（`node tools/check-problems.js`） |
+| `tools/make-ogp.js` | リンクの見た目の画像を作る（`node tools/make-ogp.js` → `assets/ogp.png`） |
 | `tools/build-single.js` | 全部を1つの HTML にまとめる道具（`node tools/build-single.js` → `dist/chalkman.html`） |
 
 ## 公開のしかた（GitHub Pages・無料）

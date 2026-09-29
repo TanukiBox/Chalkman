@@ -213,7 +213,10 @@
       state: 'title', D: null, sceneId: 'title', prob: null,
       word: null, writer: null, phase: 'none', phaseT: 0, fly: null,
       result: null, msg: '', msgKind: '', ngT: -1, trans: null, fadeIn: 1, stamp: null, busy: false, failAfterDone: false,
-      time: 0, overT: 0
+      time: 0, overT: 0,
+      fast: false, ffT: 0,       // 早送り
+      card: null,                // 章のはじまりの題名カード
+      failFor: null, fails: 0    // 同じ問題で何回失敗したか（ヒント）
     };
     var ui = {};
 
@@ -259,7 +262,7 @@
       D.man.x = D.sc.manX;
       D.man.play(D.sc.manAnim || 'idle');
       P.D = D;
-      P.word = null; P.phase = 'none'; P.stamp = null;
+      P.word = null; P.phase = 'none'; P.stamp = null; P.fast = false;
       // はじめの見せ方：左から歩いて入る → （シーンによっては）カメラを引いて全体を見せる
       var walkIn = !!opts.walkIn && !D.sc.noWalkIn, intro = !opts.retry && S.intro;
       P.introLock = walkIn || !!intro;
@@ -320,6 +323,8 @@
       transitionTo(how || 'scroll', function (scrolling) {
         setScene(list[i].scene, list[i], { walkIn: !!scrolling });
         markSeen(list[i]);
+        // 章の1問目：はじめに題名カード
+        if (i === 0) { P.card = { ch: run.chapter, t: 0, dur: 2.4 }; app.sfx.play('stroke'); }
         P.state = 'input'; P.msg = ''; P.result = null;
         buildPad();
       });
@@ -527,7 +532,7 @@
     }
     function actFinished() {
       var D = P.D, r = P.result;
-      P.phase = 'none';
+      P.phase = 'none'; P.fast = false;
       var kind = r.kind;
       if (kind === 'success' || kind === 'funny') {
         if (kind === 'funny') {
@@ -552,6 +557,7 @@
         D.thread = { it: CM.ACTS[P.prob.failAfter.act](D), wait: 0, done: false };
         return;
       } else if (kind === 'fail' || kind === 'pinch') {
+        if (P.prob) { if (P.failFor !== P.prob.id) { P.failFor = P.prob.id; P.fails = 0; } P.fails++; }
         P.stamp = { key: kind === 'pinch' ? 'stamp_pinch' : 'stamp_fail', color: COL.red, t: 0 };
         if (D.man.alpha > 0 && D.man.x < D.st.x + D.st.w) D.man.play('puzzled');
         var tip = meter.tipPos(app.L);
@@ -652,6 +658,27 @@
       else bgm.play('classroom');
     }
 
+    /**
+     * ヒント：同じ問題で2回失敗したら、書く欄に1行出す（失敗するたびに、別の成功の条件のヒントに変わる）
+     *   タグ →「〇〇」もの　小分類・大分類 →「〇〇」のなかま　決まった単語 → はじめの1文字
+     */
+    function hintText() {
+      var prob = P.prob;
+      if (!prob || P.failFor !== prob.id || P.fails < 2) return '';
+      // わかりやすい順：タグ → なかま → 決まった単語
+      var pri = function (r) { return r.tag ? 0 : r.sub || r.cat ? 1 : 2; };
+      var list = prob.rules.filter(function (r) { return r.result === 'success' && !r.any; })
+        .map(function (r, i) { return { r: r, i: i }; })
+        .sort(function (a, b) { return pri(a.r) - pri(b.r) || a.i - b.i; })
+        .map(function (x) { return x.r; });
+      if (!list.length) return '';
+      var rule = list[(P.fails - 2) % list.length];
+      if (rule.tag) return T('hintTag', { t: T('tag_' + rule.tag) });
+      if (rule.sub || rule.cat) return T('hintGroup', { t: CM.ruleLabel(rule) });
+      var w = U.chars(CM.ruleLabel(rule));
+      return T('hintWord', { c: w[0].toUpperCase(), n: w.length });
+    }
+
     /** 答え図鑑の書く欄：グループ（章・ルート）と、前・次 */
     function buildAnswersPad(csc) {
       var list = CM.answerList(), A = CM.getAnswers();
@@ -723,6 +750,8 @@
           var rt = P.prob.routeText && P.prob.routeText[run.route || 'sky'];
           padEl.appendChild(el('p', 'prompt', P.prob.text[app.i18n.lang] + (rt ? ' ' + rt[app.i18n.lang] : '')));
           addWriteRow(P.busy || P.introLock || st === 'dying');
+          var hint = st === 'input' ? hintText() : '';
+          if (hint) padEl.appendChild(el('p', 'hintline', hint));
           if (P.msg) padEl.appendChild(el('p', 'rmsg k-' + P.msgKind, P.msg));
         }
       } else if (st === 'clear') {
@@ -844,26 +873,16 @@
         }
         stageFx.update(dt);
         if (!D) return;
-        D.time += dt;
-        D.updateView();
-        var S = CM.SCENES[P.sceneId];
-        if (S.update) S.update(D.sc, dt, D);
-        updateWriting(dt);
-        if (D.intro) {
-          stepThread(D.intro, dt);
-          if (D.intro.done) { D.intro = null; if (P.introLock) { P.introLock = false; if (P.state === 'input') buildPad(); } }
+        // 章のはじまりの題名カード：出ているあいだは、場面を止めておく
+        if (P.card) {
+          P.card.t += dt;
+          if (P.card.t >= P.card.dur) P.card = null;
+          else return;
         }
-        // プロローグ：落書きの棒人間が、すーっと浮かび上がる
-        if (P.state === 'prologue' && D.man.alpha < 1) D.man.alpha = Math.min(1, D.man.alpha + dt * 0.7);
-        if (P.phase === 'act' && D.thread) {
-          stepThread(D.thread, dt);
-          if (D.thread.done) actFinished();
-        }
-        for (var i = D.follows.length - 1; i >= 0; i--) {
-          var f = D.follows[i];
-          if (f(dt) === true) { var j = D.follows.indexOf(f); if (j >= 0) D.follows.splice(j, 1); }
-        }
-        D.actors.forEach(function (a) { updateActor(D, a, dt); });
+        stepStage(D, dt);
+        // 早送り（演出の途中で黒板をタップ）：同じ時間で3倍進める
+        for (var ff = 0; ff < 2 && fastOn() && P.D === D; ff++) stepStage(D, dt);
+        P.ffT = fastOn() ? P.ffT + dt : 0;
         if (P.state === 'dying' || P.state === 'over') {
           P.overT += dt;
           if (D.man.runner.t > 2.9) D.man.runner.t = 2.9;
@@ -935,8 +954,73 @@
         } else if (P.fadeIn < 1) {
           app.drawBoardPatch(ctx, st.x, st.y, st.w, st.h, 1 - P.fadeIn);
         }
+        // 早送り：右下に「▶▶」。まだのときは、うすく「タップで早送り」
+        if (P.phase === 'act' && !app.capture && !P.trans) {
+          var on = fastOn();
+          CM.chalk.text(ctx, on ? '▶▶' : T('ffHint') + ' ▶▶', st.x + st.w - 12, st.y + st.h - 16, { size: on ? 18 : 13, align: 'right', color: on ? COL.yellow : COL.chalk, alpha: on ? 0.6 + 0.4 * Math.abs(Math.sin(P.ffT * 5)) : 0.4 });
+        }
+        if (P.card) drawCard(ctx, st);
       }
     };
+
+    /** 場面を dt 秒ぶん進める（早送りのときは、1コマで何回か呼ぶ） */
+    function stepStage(D, dt) {
+      D.time += dt;
+      D.updateView();
+      var S = CM.SCENES[P.sceneId];
+      if (S.update) S.update(D.sc, dt, D);
+      updateWriting(dt);
+      if (D.intro) {
+        stepThread(D.intro, dt);
+        if (D.intro.done) { D.intro = null; if (P.introLock) { P.introLock = false; if (P.state === 'input') buildPad(); } }
+      }
+      // プロローグ：落書きの棒人間が、すーっと浮かび上がる
+      if (P.state === 'prologue' && D.man.alpha < 1) D.man.alpha = Math.min(1, D.man.alpha + dt * 0.7);
+      if (P.phase === 'act' && D.thread) {
+        stepThread(D.thread, dt);
+        if (D.thread.done) actFinished();
+      }
+      for (var i = D.follows.length - 1; i >= 0; i--) {
+        var f = D.follows[i];
+        if (f(dt) === true) { var j = D.follows.indexOf(f); if (j >= 0) D.follows.splice(j, 1); }
+      }
+      D.actors.forEach(function (a) { updateActor(D, a, dt); });
+    }
+    /** 早送りしてよいところ（演出・はじめの見せ方） */
+    function canFast() { return !!P.D && (P.phase === 'act' || P.phase === 'lift' || (!!P.D.intro && P.state === 'input')); }
+    function fastOn() { return P.fast && canFast(); }
+    // 黒板（キャンバス）をタップ：演出の早送り／題名カードを閉じる
+    document.getElementById('board').addEventListener('pointerdown', function () {
+      if (app.scene !== api) return;
+      if (P.card) { P.card.t = Math.max(P.card.t, P.card.dur - 0.35); return; }
+      if (canFast() && !P.fast) { P.fast = true; app.sfx.play('tap'); }
+    });
+
+    /** 章のはじまりの題名カード（黒板を1枚ふいて、チョークで「第2章」と名前を書く） */
+    function drawCard(ctx, st) {
+      var c = P.card, t = c.t, dur = c.dur;
+      var a = Math.min(1, t / 0.2) * Math.min(1, (dur - t) / 0.35);
+      app.drawBoardPatch(ctx, st.x, st.y, st.w, st.h, a);
+      var name = chapterName(c.ch), lg = app.i18n.lang;
+      var cut = lg === 'ja' ? name.indexOf('　') : name.indexOf(': ');
+      var head = cut > 0 ? name.slice(0, cut) : name, sub = cut > 0 ? name.slice(cut + (lg === 'ja' ? 1 : 2)) : '';
+      var cx = st.x + st.w / 2, cy = st.y + st.h * 0.42, size = Math.min(56, st.w / 7);
+      // 左から右へ、書いていくように見せる
+      function write(str, y, sz, color, t0, len) {
+        var k = U.clamp((t - t0) / len, 0, 1);
+        if (k <= 0) return;
+        ctx.save();
+        ctx.beginPath(); ctx.rect(cx - st.w / 2, y - sz, st.w * k, sz * 2); ctx.clip();
+        CM.chalk.text(ctx, str, cx, y, { size: sz, color: color, maxW: st.w * 0.86, alpha: a });
+        ctx.restore();
+      }
+      write(head, cy, size, COL.yellow, 0.15, 0.45);
+      if (sub) write(sub, cy + size * 1.05, size * 0.62, COL.chalk, 0.6, 0.6);
+      if (t > 1.1) {
+        var lk = U.clamp((t - 1.1) / 0.35, 0, 1), lw = Math.min(st.w * 0.6, 320);
+        CM.chalk.line(ctx, [cx - lw / 2, cy + size * 1.6, cx - lw / 2 + lw * lk, cy + size * 1.62], { w: 3, color: COL.yellow, seed: 7, alpha: a });
+      }
+    }
 
     /** ステージのチョークで描く物（シーン・文字・棒人間） */
     /** カメラの寄り・引きを、描く前にかける */
