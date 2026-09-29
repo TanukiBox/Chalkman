@@ -482,10 +482,22 @@
       CM.chalk.circle(ctx, tr.x + b[0] * tr.w * 1.9, by - 6 * s, 20 * s, o(COL.green, 22 + k));
     });
     // 雲（木のてっぺんのあたり）
-    var cy = Math.max(st.y + st.h * 0.3, st.y + 96);
-    [[-1.1, 8, 16], [-0.4, 0, 20], [0.3, 4, 19], [1, 10, 14]].forEach(function (c, k) {
-      CM.chalk.circle(ctx, tr.x + c[0] * tr.w * 1.4 + Math.sin(t * 0.5 + k) * 3, cy + c[1] * s, c[2] * s, o(COL.chalk, 30 + k, 2));
-    });
+    // 雲（木のてっぺんは、この雲の中へ）
+    var cy = Math.max(st.y + st.h * 0.24, st.y + 84);
+    drawCloud(ctx, tr.x - tr.w * 1.9 + Math.sin(t * 0.5) * 3, cy, 58 * s, 32);
+    drawCloud(ctx, tr.x + tr.w * 1.7 + Math.sin(t * 0.5 + 1) * 3, cy + 10 * s, 50 * s, 33);
+    function drawCloud(c, x, y, w, sd) {
+      var pts = [x - w, y + w * 0.25];
+      var bumps = [[-0.75, 0.05, 0.3], [-0.3, -0.25, 0.38], [0.2, -0.3, 0.36], [0.65, -0.05, 0.3]];
+      bumps.forEach(function (b, k) {
+        for (var i = 0; i <= 6; i++) {
+          var a = PI + (i / 6) * PI;
+          pts.push(x + b[0] * w + Math.cos(a) * b[2] * w, y + b[1] * w + Math.sin(a) * b[2] * w * 0.9);
+        }
+      });
+      pts.push(x + w, y + w * 0.25, x - w, y + w * 0.25);
+      CM.chalk.line(c, pts, o(COL.chalk, sd, 2.2));
+    }
     // 根（地面の下へ）
     [[-1, 0.6], [-0.4, 1], [0.3, 0.9], [1, 0.7]].forEach(function (r, k) {
       var rx = tr.x + r[0] * tr.w * 0.4;
