@@ -14,7 +14,8 @@
     CHALK_CLEAR: 20,
     ENDING_CHALK: 60,       // エンディングで「チョークが多い」となる残り（これ以上）
     ENDING_FUNNY: 10,       // 隠しエンドになる珍回答の回数（これ以上）
-    SHARE_URL: '',          // シェアに入れるゲームの URL（空なら、公開中のページの URL。例：'https://tanukibox.github.io/Chalkman/'）
+    SHARE_URL: 'https://tanukibox.github.io/Chalkman/',   // シェアに入れるゲームの URL（GitHub Pages で公開する場所）
+    DEV_BUTTONS: true,      // タイトルの確認用ボタン（「確認用の画面」「確認用：第2章・第3章から」）。公開するときは false にする
 
     // ---- 入力 ----
     WORD_MAX: 12,             // 書ける文字数

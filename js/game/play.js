@@ -641,13 +641,16 @@
           padEl.appendChild(btn(T('start'), 'big', function () { app.sfx.play('ui'); newGame(); }));
         }
         padEl.appendChild(btn(T('collection', { n: Object.keys(CM.getSeenEndings()).length }), '', function () { app.sfx.play('ui'); openCollection(); }));
-        padEl.appendChild(btn(T('toLab'), 'small', function () { app.sfx.play('ui'); app.go('lab'); }));
-        // 確認用（試遊のあいだだけ）：第2章から始める
-        var tr = el('div', 'row kb-hide');
-        [[2, 'sky', 'testSky'], [2, 'under', 'testUnder'], [3, 'sky', 'testCh3']].forEach(function (d) {
-          tr.appendChild(btn(T(d[2]), 'small', function () { app.sfx.play('ui'); startAt(d[0], d[1]); }));
-        });
-        padEl.appendChild(tr);
+        // 確認用のボタン（config.js の DEV_BUTTONS が false なら出さない）
+        if (CFG.DEV_BUTTONS) {
+          padEl.appendChild(btn(T('toLab'), 'small', function () { app.sfx.play('ui'); app.go('lab'); }));
+          // 確認用（試遊のあいだだけ）：第2章から始める
+          var tr = el('div', 'row kb-hide');
+          [[2, 'sky', 'testSky'], [2, 'under', 'testUnder'], [3, 'sky', 'testCh3']].forEach(function (d) {
+            tr.appendChild(btn(T(d[2]), 'small', function () { app.sfx.play('ui'); startAt(d[0], d[1]); }));
+          });
+          padEl.appendChild(tr);
+        }
       } else if (st === 'input' || st === 'result' || st === 'dying') {
         var list = chapterProblems(run.chapter);
         padEl.appendChild(el('p', 'qnum kb-hide', chapterName(run.chapter) + '　' + (run.q + 1) + ' / ' + list.length));

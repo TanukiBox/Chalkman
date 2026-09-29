@@ -277,5 +277,6 @@
 | 撮影モード | OK |
 | iPhone の Safari・Android の Chrome（本物の端末） | まだ（この作業環境には本物の端末と Safari がないため、あなたの端末で確認してもらう） |
 
-- 公開前にすること：タイトルの「確認用の画面」「確認用：第2章・第3章から」ボタンを消す（試遊のあいだは残す）。`SHARE_URL` に公開する URL を書く。
+- 公開：GitHub Pages（https://tanukibox.github.io/Chalkman/）。`SHARE_URL` に設定済み。
+- 公開前にすること：`config.js` の `DEV_BUTTONS` を `false` にする（タイトルの確認用ボタンが消える。試遊のあいだは true のまま）。
 

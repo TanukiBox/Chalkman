@@ -60,6 +60,7 @@
 
 ## 公開のしかた（GitHub Pages・無料）
 DUST DASH と同じ手順です。
+0. 公開する前に、`js/game/config.js` の `DEV_BUTTONS: true` を `false` にする（タイトルの確認用ボタンが消える）。シェアに入る URL（`SHARE_URL`）は `https://tanukibox.github.io/Chalkman/` にしてある。
 1. GitHub の TanukiBox/Chalkman → Settings → Pages → Build and deployment の Source を **Deploy from a branch**。
 2. Branch を今のブランチ（`claude/game-development-hnf24z`）、フォルダを **/(root)** にして Save。
 3. 1〜2分で https://tanukibox.github.io/Chalkman/ で開ける。以後、このブランチに push すると自動で更新される。
