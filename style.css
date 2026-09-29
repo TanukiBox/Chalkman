@@ -49,6 +49,12 @@ body {
   z-index: 2;
 }
 .hide-ui #hud, .hide-ui #pad { display: none; }
+/* 撮影モード：黒板と棒人間と書いた文字だけ（右上の「撮影」ボタンだけ、うすく残す） */
+.capture #hud .cbtn:not(.cap-toggle) { display: none; }
+.capture #hud .cap-toggle { opacity: 0.3; }
+.capture #pad .qnum, .capture #pad .prompt, .capture #pad .note { display: none; }
+.cbtn.dim { opacity: 0.55; }
+.cbtn.share { border-color: #9fd6ff; color: #dff1ff; }
 
 /* ---- チョークで描いたようなボタン ---- */
 .cbtn {

@@ -174,6 +174,26 @@
     var padEl = document.getElementById('pad'), hudEl = document.getElementById('hud');
     var meter = app.chalk;
     var run = null;          // 1回の冒険の記録
+    var store = app.store;
+
+    // ---- セーブ ----
+    //   run      … 遊んでいる途中の冒険（問題が始まるたびに保存。エンディング・ゲームオーバーで消す）
+    //   endings  … 見たエンディング { 番号: 最後に書いた単語 }
+    //   stats    … これまでに書いた単語の数、珍回答の回数、エンディングまで行った回数
+    function stats() { return store.get('stats', { words: 0, funny: 0, clears: 0 }); }
+    function addStat(k, n) { var st = stats(); st[k] = (st[k] || 0) + (n || 1); store.set('stats', st); }
+    function saveRun() {
+      if (!run) return;
+      var r = {};
+      for (var k in run) r[k] = run[k];
+      r.chalk = meter.value;
+      store.set('run', r);
+    }
+    function clearRun() { store.remove('run'); }
+    function savedRun() { var r = store.get('run', null); return r && r.chapter ? r : null; }
+    function seeEnding(n, word) { var e = store.get('endings', {}); e[n] = word || ''; store.set('endings', e); }
+    CM.getSeenEndings = function () { return store.get('endings', {}); };
+    CM.getStats = stats;
     // ステージの中の粉や音の文字（カメラといっしょに動く）
     var stageFx = CM.createFx();
     stageFx.shake = function (a, d) { app.fx.shake(a, d); };
@@ -266,6 +286,15 @@
         buildPad();
       });
     }
+    /** 保存した冒険の、つづきから */
+    function continueRun() {
+      var r = savedRun();
+      if (!r) return newGame();
+      run = r;
+      run.funnyWords = run.funnyWords || []; run.helped = run.helped || [];
+      meter.set(r.chalk === undefined ? CFG.CHALK_START : r.chalk);
+      goProblem(r.q || 0, 'fade');
+    }
     /** 確認用：章とルートを決めて、その章の1問目から始める */
     function startAt(ch, route) {
       run = { chapter: ch, q: 0, funny: 0, lastFunny: null, route: route, words: 0, funnyWords: [] };
@@ -275,6 +304,7 @@
     function goProblem(i, how) {
       var list = chapterProblems(run.chapter);
       run.q = i;
+      saveRun();
       transitionTo(how || 'scroll', function (scrolling) {
         setScene(list[i].scene, list[i], { walkIn: !!scrolling });
         P.state = 'input'; P.msg = ''; P.result = null;
@@ -309,6 +339,9 @@
     function goEnding(n) {
       n = n || decideEnding();
       run.endingNo = n;
+      seeEnding(n, run.lastWord);
+      addStat('clears');
+      clearRun();
       transitionTo('fade', function () {
         setScene('ending', null);
         var sc = P.D.sc;
@@ -335,6 +368,22 @@
           for (var k = 0; k < 6; k++) app.realFx.add({ type: 'star', x: tip[0] + (Math.random() - 0.5) * 40, y: tip[1] - Math.random() * 16, life: 0.7, size: 5, color: COL.yellow });
         }, 700);
       });
+    }
+    /** エンディング回収画面 */
+    function openCollection() {
+      transitionTo('fade', function () {
+        setScene('collection', null);
+        var seen = CM.getSeenEndings(), first = 1;
+        for (var i = 1; i <= 8; i++) if (seen[i] !== undefined) { first = i; break; }
+        P.D.sc.sel = first;
+        P.state = 'collection';
+        buildPad();
+      });
+    }
+    /** シェアに使う、今回の冒険の記録 */
+    function shareInfo() { return { ending: run.endingNo || 8, word: run.lastWord || '', lastFunny: run.lastFunny }; }
+    function shareBtn() {
+      return btn(T('shareBtn'), 'big share', function () { app.sfx.play('ui'); CM.share(shareInfo()); });
     }
     function toTitle() {
       transitionTo('fade', function () { setScene('title', null); P.state = 'title'; buildPad(); });
@@ -366,6 +415,7 @@
         return;
       }
       run.words++;
+      addStat('words');
       P.msg = ''; P.busy = true;
       var w = CM.createWord(r.text, app.dpr);
       var sr = slateRect();
@@ -469,6 +519,7 @@
       if (kind === 'success' || kind === 'funny') {
         if (kind === 'funny') {
           run.funny++;
+          addStat('funny');
           run.lastFunny = { chapter: run.chapter, q: globalQ() + 1, word: r.text, text: CM.fillWord(r.reaction[app.i18n.lang], r.text) };
           run.funnyWords.push(r.text);
         }
@@ -498,6 +549,7 @@
         if (zero) {
           // チョークが 0：黒板消しに消される（エンディング8）
           P.state = 'dying'; P.overT = 0;
+          run.endingNo = 8; seeEnding(8, ''); clearRun();
           D.man.x = Math.max(D.man.x, D.st.x + D.st.w * 0.3);
           D.man.alpha = 1; D.man.dy = 0; D.held = null; D.wordVisible = false;
           D.man.play('erased');
@@ -531,6 +583,13 @@
       }));
       hudEl.appendChild(btn(app.sound.muted ? T('mute') : T('sound'), 'small' + (app.sound.muted ? '' : ' on'), function () {
         app.sound.toggle(); app.sfx.play('ui'); buildHud();
+      }));
+      // 撮影モード：ボタン・見出し・地図・チョーク残量を隠して、黒板と棒人間と書いた文字だけにする
+      //   ボタンが横に広がって見出しとかぶらないように、「撮影」はタイトル画面だけ（撮影中は、どの画面でも「撮影中」だけ、うすく出る）
+      if (P.state === 'title' || app.capture) hudEl.appendChild(btn(app.capture ? T('captureOff') : T('captureOn'), 'small cap-toggle' + (app.capture ? ' on' : ''), function () {
+        app.capture = !app.capture;
+        document.getElementById('app').classList.toggle('capture', app.capture);
+        app.sfx.play('ui'); buildHud();
       }));
     }
 
@@ -573,7 +632,15 @@
         padEl.appendChild(btn(T('depart'), 'big', function () { app.sfx.play('ui'); goProblem(0, 'scroll'); }));
       } else if (st === 'title') {
         padEl.appendChild(el('p', 'prompt', T('titleNote')));
-        padEl.appendChild(btn(T('start'), 'big', function () { app.sfx.play('ui'); newGame(); }));
+        var sv = savedRun();
+        if (sv) {
+          var svN = sv.q + 1 + (sv.chapter >= 2 ? 6 : 0) + (sv.chapter >= 3 ? 7 : 0);
+          padEl.appendChild(btn(T('continue', { n: svN }), 'big', function () { app.sfx.play('ui'); continueRun(); }));
+          padEl.appendChild(btn(T('startOver'), '', function () { app.sfx.play('ui'); clearRun(); newGame(); }));
+        } else {
+          padEl.appendChild(btn(T('start'), 'big', function () { app.sfx.play('ui'); newGame(); }));
+        }
+        padEl.appendChild(btn(T('collection', { n: Object.keys(CM.getSeenEndings()).length }), '', function () { app.sfx.play('ui'); openCollection(); }));
         padEl.appendChild(btn(T('toLab'), 'small', function () { app.sfx.play('ui'); app.go('lab'); }));
         // 確認用（試遊のあいだだけ）：第2章から始める
         var tr = el('div', 'row kb-hide');
@@ -613,12 +680,31 @@
         if (E.routeText) txt = E.routeText[run.route || 'sky'][lang] + txt;
         padEl.appendChild(el('p', 'rmsg big', CM.fillWord(txt, w)));
         padEl.appendChild(el('p', 'note', T('funnyCount', { n: run.funny }) + '　' + T('chalkLeftN', { n: Math.round(meter.value) })));
-        padEl.appendChild(btn(T('playAgain'), 'big', function () { app.sfx.play('ui'); newGame(); }));
+        padEl.appendChild(shareBtn());
+        padEl.appendChild(btn(T('playAgain'), '', function () { app.sfx.play('ui'); newGame(); }));
+        padEl.appendChild(btn(T('toTitle'), 'small', function () { app.sfx.play('ui'); toTitle(); }));
+      } else if (st === 'collection') {
+        var seen = CM.getSeenEndings(), sel = P.D.sc.sel, ss = stats(), lg = app.i18n.lang;
+        padEl.appendChild(el('p', 'note kb-hide', T('statsLine', { e: Object.keys(seen).length, w: ss.words || 0, f: ss.funny || 0 })));
+        var grid = el('div', 'tabs probs');
+        for (var ci = 1; ci <= 8; ci++) (function (n) {
+          grid.appendChild(btn(seen[n] !== undefined ? '★' + n : String(n), 'small' + (sel === n ? ' on' : '') + (seen[n] !== undefined ? '' : ' dim'), function () { app.sfx.play('ui'); P.D.sc.sel = n; buildPad(); }));
+        })(ci);
+        padEl.appendChild(grid);
+        var CE = CM.ENDINGS[sel];
+        if (seen[sel] !== undefined) {
+          padEl.appendChild(el('p', 'rmain k-success', T('endingN', { n: sel }) + '　' + CM.fillWord(CE.title[lg], seen[sel] || '…')));
+          padEl.appendChild(el('p', 'rmsg', CM.fillWord(CE.text[lg], seen[sel] || '…')));
+        } else {
+          padEl.appendChild(el('p', 'rmain', T('endingN', { n: sel }) + '　？？？'));
+          padEl.appendChild(el('p', 'rmsg', T('hintLabel') + CE.hint[lg]));
+        }
         padEl.appendChild(btn(T('toTitle'), 'small', function () { app.sfx.play('ui'); toTitle(); }));
       } else if (st === 'over') {
         padEl.appendChild(el('p', 'rmain k-fail', T('gameOver')));
         padEl.appendChild(el('p', 'rmsg big', T('end8')));
-        padEl.appendChild(btn(T('restart'), 'big', function () { app.sfx.play('ui'); newGame(); }));
+        padEl.appendChild(shareBtn());
+        padEl.appendChild(btn(T('restart'), '', function () { app.sfx.play('ui'); newGame(); }));
         padEl.appendChild(btn(T('toTitle'), 'small', function () { app.sfx.play('ui'); toTitle(); }));
       }
       app.relayoutDom();
@@ -749,8 +835,8 @@
         } else stageReal(ctx, D, P.sceneId);
         ctx.restore();
         // 見出しと、黒板の地図（暗やみの上にも見えるように、ここで描く）
-        if (P.prob && run && P.state !== 'prologue') {
-          CM.chalk.text(ctx, (globalQ() + 1) + '. ' + P.prob.title[app.i18n.lang], st.x + 14, st.y + 22, { size: 18, align: 'left', color: COL.yellow, maxW: st.w - 170 });
+        if (P.prob && run && P.state !== 'prologue' && !app.capture) {
+          CM.chalk.text(ctx, (globalQ() + 1) + '. ' + P.prob.title[app.i18n.lang], st.x + 14, st.y + 22, { size: 18, align: 'left', color: COL.yellow, maxW: st.w - 192 });
           drawMap(ctx, st, globalQ());
         }
         // 結果のはんこ

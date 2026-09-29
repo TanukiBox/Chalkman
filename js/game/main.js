@@ -135,7 +135,7 @@
     ctx.setTransform(dpr, 0, 0, dpr, sh.x * dpr, sh.y * dpr);
     app.scene.drawReal(ctx);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    app.chalk.draw(ctx, L, app.time);
+    if (!app.capture) app.chalk.draw(ctx, L, app.time);   // 撮影モードでは、チョーク残量を出さない
     app.realFx.draw(ctx);
   }
 
