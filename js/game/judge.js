@@ -115,11 +115,80 @@
   CM.DICT_PROBLEMS = problems;
   CM.DICT_ENTRIES = entries;
 
-  /** 辞書を引く（見つからなければ null） */
-  CM.lookupWord = function (text) {
-    var cs = candidates(normalize(text));
+  function lookupKey(key) {
+    var cs = candidates(key);
     for (var i = 0; i < cs.length; i++) if (index[cs[i]]) return index[cs[i]];
     return null;
+  }
+
+  // ------------------------------------------------------------
+  // 様子をあらわすことば（「おおきないわ」「ながいロープ」「あついスープ」）
+  //   辞書にない単語は、頭の「おおきな」などを取って、のこりを辞書で引く。
+  //   見つかったら、その単語に「大きい」などのタグを足す（反対のタグは取る）。2つまで重ねられる
+  //   ・書き方は、ひらがな（カタカナも可）・漢字・英語。「ふわふわの」のような「の」付きも
+  // ------------------------------------------------------------
+  var MODS = [
+    ['big', 'small', 'おおきな おおきい 大きな 大きい でかい でっかい でっかな きょだいな 巨大な ばかでかい big large huge giant giga mega'],
+    ['small', 'big', 'ちいさな ちいさい 小さな 小さい ちっちゃな ちっちゃい ちっこい みに ミニ small little tiny mini'],
+    ['long', '', 'ながい なが〜い ながーい ながーーい 長い ながながとした long longer'],
+    ['hot', 'cold', 'あつい あっつい あつあつの 熱い 暑い ほかほかの ほかほか ほっかほかの あったかい 温かい 暖かい もえる 燃える hot warm burning'],
+    ['cold', 'hot', 'つめたい 冷たい ひえひえの ひえひえ さむい 寒い こおった 凍った ひんやり ひんやりした cold icy frozen chilly'],
+    ['heavy', '', 'おもい おもたい 重い 重たい ずっしりした heavy'],
+    ['hard', 'soft', 'かたい 硬い 固い 堅い かちかちの かちかち かちこちの かちこち hard'],
+    ['soft', 'hard', 'やわらかい やわらかな 柔らかい 軟らかい ふわふわの ふわふわ ふかふかの ふかふか もふもふの もふもふ ぷにぷにの ぷにぷに soft fluffy squishy'],
+    ['glow', '', 'ひかる 光る ぴかぴかの ぴかぴか きらきらの きらきら かがやく 輝く glowing shiny shining bright'],
+    ['sound', '', 'うるさい さわがしい 鳴る なる loud noisy'],
+    ['danger', '', 'あぶない 危ない きけんな 危険な こわい 怖い dangerous scary deadly'],
+    ['cute', '', 'かわいい 可愛い かわいらしい cute pretty'],
+    ['fly', '', 'とぶ 飛ぶ そらとぶ 空飛ぶ flying'],
+    ['swim', '', 'およぐ 泳ぐ swimming'],
+    ['edible', '', 'おいしい 美味しい うまい tasty yummy delicious']
+  ];
+  var modList = [];
+  MODS.forEach(function (m) {
+    m[2].split(' ').forEach(function (w) { var k = normalize(w); if (k) modList.push({ key: k, tag: m[0], off: m[1] }); });
+  });
+  modList.sort(function (a, b) { return b.key.length - a.key.length; });   // 長いほうから（「おおきな」より「ばかでかい」を先に）
+  CM.WORD_MODS = MODS;
+  var HAS_KANJI = /[\u4e00-\u9fff]/;
+  var modCache = {};
+  /** 頭の「様子のことば」を取って引く。見つからなければ null */
+  function lookupMod(key) {
+    if (modCache[key] !== undefined) return modCache[key];
+    var found = null, rest = key, mods = [];
+    for (var n = 0; n < 2 && !found; n++) {
+      var hit = null;
+      for (var i = 0; i < modList.length; i++) {
+        var m = modList[i];
+        if (rest.indexOf(m.key) !== 0 || rest.length <= m.key.length) continue;
+        var r = rest.slice(m.key.length);
+        if (/^[a-z]/.test(m.key) ? !/^[a-z]{3,}$/.test(r) : /^[a-z]/.test(r) || (r.length < 2 && !HAS_KANJI.test(r))) continue;
+        hit = { m: m, rest: r }; break;
+      }
+      if (!hit) break;
+      mods.push(hit.m); rest = hit.rest;
+      found = lookupKey(rest);
+    }
+    if (found) {
+      var tags = found.tags.slice();
+      for (var j = mods.length - 1; j >= 0; j--) {
+        var t = mods[j];
+        tags = tags.filter(function (x) { return x !== t.tag && x !== t.off; });
+        tags.unshift(t.tag);   // 足したタグを先頭に（画面に出すタグ）
+      }
+      var e = {};
+      for (var k in found) e[k] = found[k];
+      e.tags = tags; e.base = found; e.mods = mods.map(function (x) { return x.tag; });
+      found = e;
+    }
+    modCache[key] = found;
+    return found;
+  }
+
+  /** 辞書を引く（見つからなければ、様子のことばを取って引く。それでもなければ null） */
+  CM.lookupWord = function (text) {
+    var key = normalize(text);
+    return lookupKey(key) || lookupMod(key);
   };
 
   // ------------------------------------------------------------
@@ -169,7 +238,7 @@
     if (rule.tag) return entry.tags.indexOf(rule.tag) >= 0;
     if (rule.sub) return entry.sub === rule.sub;
     if (rule.cat) return entry.cat === rule.cat;
-    if (rule.word) return String(rule.word).split('/').some(function (w) { return CM.lookupWord(w) === entry; });
+    if (rule.word) return String(rule.word).split('/').some(function (w) { var e = CM.lookupWord(w); return !!e && e.id === entry.id; });
     if (rule.any) return true;
     return false;
   }
