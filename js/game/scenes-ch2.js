@@ -141,48 +141,64 @@
   //  空ルート
   // ============================================================
 
-  // ---- 7問目：雲の上を歩きたい（足が沈む） ----
-  SC.cloudWalk = {
+  // ---- 7問目：はねる雲（トランポリンみたいに跳ねて止まらない） ----
+  /** 風見どり（となりの小さな雲の上） */
+  function drawVane(ctx, v, D) {
+    var s = D.s, x = v.x, y = v.y, a = Math.sin(D.time * 1.5) * 0.3;
+    var depth = 30 * s, pts = islandPts(x - 34 * s, x + 34 * s, y, depth, s, 77, false, false);
+    drawIsland(ctx, D, pts, x - 34 * s, x + 34 * s, y, depth, 77);
+    L(ctx, [x, y, x, y - 58 * s], o(COL.orange, 780, 2.4));
+    L(ctx, [x - 10 * s, y - 40 * s, x + 10 * s, y - 40 * s], o(COL.orange, 781, 1.8));
+    ctx.save(); ctx.translate(x, y - 60 * s); ctx.scale(Math.cos(a), 1);
+    // にわとりの形の矢
+    L(ctx, [-16 * s, 0, 14 * s, 0], o(COL.yellow, 782, 2.2));
+    L(ctx, [10 * s, -5 * s, 16 * s, 0, 10 * s, 5 * s], o(COL.yellow, 783, 2.2));
+    L(ctx, [-14 * s, 0, -8 * s, -12 * s, 2 * s, -14 * s, 6 * s, -8 * s, 2 * s, -2 * s], o(COL.yellow, 784, 2));
+    L(ctx, [-16 * s, 0, -20 * s, -8 * s, -12 * s, -4 * s], o(COL.yellow, 785, 1.8));
+    ctx.restore();
+  }
+  SC.bounceCloud = {
     setup: function (sc, D) {
-      var st = D.st;
       sc.segs = [];
-      sc.left = { x0: st.x - st.w * 0.25, x1: X(D, 0.46) };
-      sc.right = { x0: X(D, 0.8), x1: st.x + st.w * 1.25 };
-      sc.gap = { x0: sc.left.x1, x1: sc.right.x0 };
-      sc.manX = X(D, 0.2); sc.restX = X(D, 0.34);
-      sc.sink = 0; sc.sinking = true; sc.pink = 0; sc.grow = 0;
+      sc.manX = X(D, 0.26); sc.restX = X(D, 0.5);
+      sc.noWalkIn = true; sc.keepAnim = true; sc.manAnim = 'hopAir';
+      sc.bouncing = true; sc.bt = 0; sc.period = 0.85; sc.amp = 34 * D.s; sc.maxAmp = 118 * D.s;
+      sc.landY = null; sc.stopAtLand = false; sc.stopped = false; sc.bounceAnim = null;
+      sc.vane = { x: X(D, 0.84), y: D.gy - 96 * D.s };
+      sc.boingT = 0;
     },
+    /** いまの跳ねの高さ（0＝着地） */
+    height: function (sc) { var ph = (sc.bt % sc.period) / sc.period; return sc.amp * 4 * ph * (1 - ph); },
     update: function (sc, dt, D) {
-      if (sc.sinking) {
-        sc.sink = Math.min(20 * D.s, sc.sink + dt * 2.2 * D.s);
-        D.man.gy = D.gy + sc.sink;
+      if (!sc.bouncing) return;
+      var prev = sc.bt % sc.period;
+      sc.bt += dt;
+      var landed = sc.bt % sc.period < prev;
+      var base = sc.landY === null ? D.gy : sc.landY, m = D.man;
+      if (landed) {
+        if (sc.stopAtLand) { sc.bouncing = false; sc.stopped = true; m.gy = base; m.play('idle'); return; }
+        if (!sc.fixedAmp) sc.amp = Math.min(sc.maxAmp, sc.amp * 1.18);
+        D.sfx.play('boing');
+        D.fx.dust(m.x, base, 5, { angle: -PI / 2, spread: 2.6, speed: 50, g: 100 });
+        sc.boingT -= 1;
+        if (sc.boingT <= 0) { sc.boingT = 2; D.fx.word(D.T('sfx_boyon'), m.x + 36 * D.s, base - 30 * D.s, { size: 14 * D.s + 4, color: COL.chalk, life: 0.7 }); }
       }
+      var h = SC.bounceCloud.height(sc);
+      m.gy = base - h;
+      m.play(sc.bounceAnim || (h > 5 * D.s ? 'hopAir' : 'idle'));
     },
     drawChalk: function (ctx, sc, D) {
-      farClouds(ctx, D, [[0.15, 0.2, 26], [0.62, 0.14, 34], [0.9, 0.3, 22]]);
-      // 木のてっぺん（6問目の木を登ってきた）
-      var tx = X(D, 0.12), s = D.s;
-      [[-14, 34, 20], [12, 40, 18], [-2, 52, 22]].forEach(function (b, i) {
-        CM.chalk.circle(ctx, tx + b[0] * s, D.gy + b[1] * s, b[2] * s, o(COL.green, 90 + i, 2.2, 0.7));
-      });
-    },
-    // 雲は棒人間の前に描く（沈んだ足が、雲の中にかくれるように）
-    drawFront: function (ctx, sc, D) {
-      var s = D.s, gy = D.gy, depth = Math.min(56 * s, D.st.y + D.st.h - gy - 6);
-      var col = sc.pink > 0 ? mixCol(COL.chalk, COL.pink, sc.pink) : COL.chalk;
-      var lx1 = U.lerp(sc.left.x1, sc.right.x0 + 30 * s, sc.grow);
-      [[sc.left.x0, lx1, true, false, 1], [sc.right.x0, sc.right.x1, false, true, 2]].forEach(function (c) {
-        var pts = islandPts(c[0], c[1], gy, depth, s, 20 + c[4], c[2], c[3]);
-        // 雲の中（足がかくれる）
-        ctx.save(); ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = '#000';
-        ctx.beginPath(); ctx.moveTo(pts[0], pts[1] + 3);
-        for (var i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], Math.max(pts[i + 1], gy + 3));
-        ctx.closePath(); ctx.fill(); ctx.restore();
-        if (sc.pink > 0) fill(ctx, pts, COL.pink, 0.2 * sc.pink);
-        drawIsland(ctx, D, pts, c[0], c[1], gy, depth, 20 + c[4], col);
-      });
+      farClouds(ctx, D, [[0.12, 0.16, 24], [0.55, 0.12, 30]]);
+      drawVane(ctx, sc.vane, D);
+      skyFloor(ctx, D, D.st.x - 20, D.st.x + D.st.w + 20, D.gy, 13);
+      // 跳ねるところの、ばねの線
+      if (sc.bouncing) {
+        var h = SC.bounceCloud.height(sc), s = D.s;
+        if (h < 14 * s) for (var i = -1; i <= 1; i++) L(ctx, [D.man.x + i * 14 * s, D.gy + 6 * s, D.man.x + i * 18 * s, D.gy + 14 * s], o(COL.chalk, 790 + i, 1.4, 0.6));
+      }
     }
   };
+
   function mixCol(a, b, k) {
     var pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
     var r = Math.round(U.lerp(pa >> 16, pb >> 16, k)), g = Math.round(U.lerp((pa >> 8) & 255, (pb >> 8) & 255, k)), bl = Math.round(U.lerp(pa & 255, pb & 255, k));
@@ -513,46 +529,78 @@
     drawFront: function (ctx, sc, D) { drawGuardGear(ctx, sc.guard, D); }
   };
 
-  // ---- 12問目：夜になった ----
+  // ---- 12問目：夜の分かれ道（どの道が自由帳へ？） ----
   function drawMoon(ctx, x, y, r, sd) {
     var pts = oval(x, y, r, r, 20, -PI * 0.62, PI * 0.62).concat(oval(x + r * 0.45, y, r * 0.78, r * 0.86, 16, PI * 0.5, -PI * 0.5));
     L(ctx, pts, o(COL.yellow, sd, 2.6));
   }
-  SC.night = {
+  /** 夜空（暗さ・月・星）。sc.lights の明かりのところだけ明るい */
+  function nightSky(ctx, sc, D) {
+    var st = D.st, c = D.darkCanvas(st.w, st.h), g = c.getContext('2d');
+    g.setTransform(c.k, 0, 0, c.k, 0, 0);
+    g.clearRect(0, 0, st.w, st.h);
+    g.globalCompositeOperation = 'source-over';
+    g.fillStyle = 'rgba(8,12,40,' + (0.62 * sc.night) + ')';
+    g.fillRect(0, 0, st.w, st.h);
+    g.globalCompositeOperation = 'destination-out';
+    sc.lights.concat([{ x: D.man.x, y: D.man.gy - 45 * D.s, r: 50 * D.s }]).forEach(function (l) {
+      var gr = g.createRadialGradient(l.x - st.x, l.y - st.y, 0, l.x - st.x, l.y - st.y, l.r);
+      gr.addColorStop(0, 'rgba(0,0,0,0.9)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr; g.beginPath(); g.arc(l.x - st.x, l.y - st.y, l.r, 0, TAU); g.fill();
+    });
+    ctx.drawImage(c, st.x, st.y, st.w, st.h);
+    drawMoon(ctx, X(D, 0.16), D.st.y + D.st.h * 0.24, 20 * D.s, 130);
+    sc.stars.forEach(function (sr, i) {
+      var tw = 0.75 + 0.25 * Math.sin(D.time * 3 + sr.ph);
+      L(ctx, starPts(sr.x, sr.y, sr.r * tw, sr.ph), o(COL.yellow, 140 + i, 1.8, 0.9));
+    });
+  }
+  CM.nightSky = nightSky;
+  SC.nightFork = {
     setup: function (sc, D) {
+      var s = D.s;
       sc.segs = [];
-      sc.manX = X(D, 0.28); sc.restX = X(D, 0.48);
-      sc.manAnim = 'sleepy'; sc.keepAnim = true;
-      sc.night = 1; sc.sun = 0; sc.zT = 1;
+      sc.manX = X(D, 0.14); sc.restX = X(D, 0.3);
+      sc.forkX = X(D, 0.4);
+      sc.night = 1; sc.lights = []; sc.signLit = false;
+      sc.paths = { up: -0.62, mid: 0, low: 0.55 };   // 分かれ道のかたむき（右へ行くほど上・そのまま・下）
       var r = U.rng(77);
       sc.stars = [];
-      for (var i = 0; i < 9; i++) sc.stars.push({ x: X(D, 0.06 + r() * 0.9), y: D.st.y + D.st.h * (0.16 + r() * 0.4), r: (4 + r() * 4) * D.s, ph: r() * TAU });
+      for (var i = 0; i < 9; i++) sc.stars.push({ x: X(D, 0.3 + r() * 0.66), y: D.st.y + D.st.h * (0.14 + r() * 0.26), r: (4 + r() * 4) * s, ph: r() * TAU });
     },
-    update: function (sc, dt, D) {
-      if (sc.sleepy === false) return;
-      sc.zT -= dt;
-      if (sc.zT <= 0) { sc.zT = 1.5; zzz(D, D.man.x + 18 * D.s, D.man.gy - 120 * D.s); if (Math.random() < 0.4) D.sfx.play('yawn'); }
-    },
+    /** 道の高さ（x のところ） */
+    pathY: function (sc, D, which, x) { return D.gy + Math.max(0, x - sc.forkX) * sc.paths[which]; },
     drawChalk: function (ctx, sc, D) {
-      skyFloor(ctx, D, D.st.x - 20, D.st.x + D.st.w + 20, D.gy, 11);
-      if (sc.sun > 0) {
-        var sx = X(D, 0.82), sy = U.lerp(D.gy + 30 * D.s, D.st.y + D.st.h * 0.3, sc.sun), sr = 20 * D.s;
-        CM.chalk.circle(ctx, sx, sy, sr, o(COL.orange, 120, 2.6));
-        for (var i = 0; i < 10; i++) { var a = i / 10 * TAU + D.time * 0.3; L(ctx, [sx + Math.cos(a) * sr * 1.3, sy + Math.sin(a) * sr * 1.3, sx + Math.cos(a) * sr * 1.8, sy + Math.sin(a) * sr * 1.8], o(COL.orange, 121 + i, 2)); }
+      var s = D.s, fx = sc.forkX;
+      skyFloor(ctx, D, D.st.x - 20, fx + 14 * s, D.gy, 15);
+      // 3つの道（小さな雲が、階段のように並ぶ）
+      ['up', 'mid', 'low'].forEach(function (k, j) {
+        for (var i = 0; i < 3; i++) {
+          var cx = fx + (40 + i * 64) * s, cy = SC.nightFork.pathY(sc, D, k, cx);
+          var depth = 19 * s, pts = islandPts(cx - 32 * s, cx + 32 * s, cy, depth, s, 160 + j * 5 + i, false, false);
+          drawIsland(ctx, D, pts, cx - 32 * s, cx + 32 * s, cy, depth, 160 + j * 5 + i);
+        }
+      });
+      // 道しるべ（3つの矢印の板）
+      var px = fx - 30 * s, top = D.gy - 100 * s;
+      L(ctx, [px, D.gy, px, top], o(COL.orange, 900, 2.6));
+      var labels = sc.signLit ? [D.T('signUp'), D.T('signMid'), D.T('signLow')] : ['？？', '？？', '？？'];
+      [-0.45, 0, 0.35].forEach(function (a, i) {
+        var by = top + 10 * s + i * 24 * s;
+        ctx.save(); ctx.translate(px, by); ctx.rotate(a);
+        var bw = 58 * s, bh = 16 * s;
+        L(ctx, [0, -bh / 2, bw, -bh / 2, bw + 10 * s, 0, bw, bh / 2, 0, bh / 2, 0, -bh / 2], o(COL.orange, 901 + i, 2));
+        CM.chalk.text(ctx, labels[i], bw / 2 + 2 * s, 1, { size: 11 * s + 2, color: i === 0 && sc.signLit ? COL.yellow : COL.chalk, alpha: 0.9, maxW: bw - 6 * s });
+        ctx.restore();
+      });
+      if (sc.arrow) {
+        // 正しい道を示す矢印（点線）
+        var pts = [];
+        for (var x = fx; x < fx + 190 * s; x += 18 * s) pts.push(x, SC.nightFork.pathY(sc, D, 'up', x) - 26 * s);
+        for (var q = 0; q + 3 < pts.length; q += 4) L(ctx, [pts[q], pts[q + 1], pts[q + 2], pts[q + 3]], o(COL.yellow, 950 + q, 2.2, sc.arrow));
       }
     },
-    drawReal: function (ctx, sc, D) {
-      if (sc.night <= 0.01) return;
-      var v = D.view;
-      ctx.save(); ctx.globalAlpha = 0.5 * sc.night; ctx.fillStyle = '#0a1030'; ctx.fillRect(v.x, v.y, v.w, v.h); ctx.restore();
-      ctx.save(); ctx.globalAlpha = sc.night;
-      drawMoon(ctx, X(D, 0.8), D.st.y + D.st.h * 0.26, 24 * D.s, 130);
-      sc.stars.forEach(function (st, i) {
-        var tw = 0.75 + 0.25 * Math.sin(D.time * 3 + st.ph);
-        L(ctx, starPts(st.x, st.y, st.r * tw, st.ph), o(COL.yellow, 140 + i, 1.8, 0.9));
-      });
-      ctx.restore();
-    }
+    drawReal: function (ctx, sc, D) { if (sc.night > 0.01) nightSky(ctx, sc, D); }
   };
 
   // ---- 13問目：流れ星から降りたい ----
@@ -716,59 +764,56 @@
     }
   };
 
-  // ---- 8問目：地下の川 ----
-  SC.river = {
+  // ---- 8問目：あふれる地下水（水かさがどんどん上がる） ----
+  SC.flood = {
     setup: function (sc, D) {
-      var st = D.st, s = D.s, a = X(D, 0.4), b = X(D, 0.82);
-      sc.segs = [{ x0: st.x + 10, x1: a }, { x0: b, x1: st.x + st.w - 10 }];
-      sc.gap = { x0: a, x1: b };
-      sc.manX = X(D, 0.12); sc.restX = X(D, 0.28);
-      sc.topY = st.y + st.h * 0.16;
-      sc.bed = Math.min(52 * s, st.y + st.h - D.gy - 6);
-      sc.water = 1; sc.frozen = 0;
-      sc.waves = [];
-      for (var i = 0; i < 7; i++) sc.waves.push({ f: Math.random(), dy: Math.random(), len: (14 + Math.random() * 16) * s, sd: 600 + i });
-      sc.roarT = 0.5;
+      var s = D.s;
+      sc.segs = fullGround(D);
+      sc.manX = X(D, 0.2); sc.restX = X(D, 0.42);
+      sc.topY = D.st.y + D.st.h * 0.2;
+      sc.leakX = X(D, 0.72);
+      sc.level = 2 * s; sc.maxLevel = 50 * s; sc.rise = 1; sc.leak = 1; sc.frozen = 0; sc.plugged = false;
+      sc.roarT = 0.4;
     },
-    surfaceY: function (sc, D) { return D.gy + 10 * D.s + (1 - sc.water) * (sc.bed - 12 * D.s); },
+    surfaceY: function (sc, D) { return D.gy - sc.level; },
     update: function (sc, dt, D) {
-      if (sc.frozen < 1) sc.waves.forEach(function (w) { w.f += dt * 0.9 * (1 - sc.frozen); if (w.f > 1) { w.f -= 1; w.dy = Math.random(); } });
-      if (sc.water > 0.3 && sc.frozen < 0.5) { sc.roarT -= dt; if (sc.roarT <= 0) { sc.roarT = 2.4; D.fx.word(D.T('sfx_zaa'), U.lerp(sc.gap.x0, sc.gap.x1, 0.5 + (Math.random() - 0.5) * 0.4), D.gy - 24 * D.s, { size: 13 * D.s + 4, color: COL.blue, life: 0.9 }); } }
+      var s = D.s;
+      if (sc.rise > 0 && sc.frozen < 0.5) sc.level = Math.min(sc.maxLevel, sc.level + dt * 4.5 * s * sc.rise);
+      if (sc.leak > 0.3 && sc.frozen < 0.5) {
+        if (Math.random() < dt * 10) D.fx.dust(sc.leakX + (Math.random() - 0.5) * 12 * s, D.gy - sc.level, 1, { angle: -PI / 2, spread: 2.2, speed: 60, g: 300, color: COL.blue, size: 1.8 });
+        sc.roarT -= dt;
+        if (sc.roarT <= 0) { sc.roarT = 2.6; D.fx.word(D.T('sfx_zaa'), sc.leakX + 30 * s, sc.topY + 50 * s, { size: 13 * s + 4, color: COL.blue, life: 0.9 }); }
+      }
     },
     drawChalk: function (ctx, sc, D) {
-      var s = D.s, g = sc.gap, gy = D.gy, bedY = gy + sc.bed;
+      var s = D.s, lx = sc.leakX;
       tunnel(ctx, D, sc.topY, 21);
       drawGround(ctx, sc, D);
-      // 川底
-      var bed = [g.x0, gy].concat(bez([g.x0, gy], [g.x0 + 6 * s, bedY], [g.x1 - 6 * s, bedY], [g.x1, gy], 14));
-      L(ctx, bed, o(BROWN, 610, 2.2, 0.8));
-      if (sc.water <= 0.01) return;
-      // 水（川底の形にそって、水面の左右のはしを決める）
-      var sy = SC.river.surfaceY(sc, D), col = sc.frozen > 0.5 ? COL.ice : COL.blue;
-      var lx = g.x0, rx = g.x1;
-      for (var i = 0; i < bed.length; i += 2) if (bed[i + 1] >= sy) { lx = bed[i]; break; }
-      for (i = bed.length - 2; i >= 0; i -= 2) if (bed[i + 1] >= sy) { rx = bed[i]; break; }
-      var wpts = [];
-      for (i = 0; i <= 12; i++) { var x = U.lerp(lx, rx, i / 12); wpts.push(x, sy + (1 - sc.frozen) * Math.sin(x * 0.08 + D.time * 6) * 2.5 * s * (i > 0 && i < 12 ? 1 : 0)); }
-      ctx.save();
-      ctx.beginPath(); ctx.moveTo(g.x0, sy); ctx.lineTo(g.x1, sy); ctx.lineTo(g.x1, gy);
-      for (i = bed.length - 2; i >= 2; i -= 2) ctx.lineTo(bed[i], bed[i + 1]);
-      ctx.closePath(); ctx.clip();
-      ctx.globalAlpha = sc.frozen > 0.5 ? 0.35 : 0.22; ctx.fillStyle = col; ctx.fillRect(g.x0, sy, g.x1 - g.x0, bedY - sy + 4);
-      ctx.restore();
-      L(ctx, wpts, o(col, 620, 2.4));
-      if (sc.frozen < 0.9) {
-        sc.waves.forEach(function (w) {
-          var y = sy + 8 * s + w.dy * (bedY - sy - 14 * s);
-          if (y < sy + 4 * s || y > bedY - 4 * s) return;
-          var x = U.lerp(lx + 12 * s, rx - 12 * s - w.len, w.f);
-          L(ctx, [x, y, x + w.len * 0.5, y - 2 * s, x + w.len, y], o(COL.blue, w.sd, 1.6, 0.6 * (1 - sc.frozen)));
-        });
+      // 天井のひび
+      L(ctx, [lx - 20 * s, sc.topY - 2, lx - 8 * s, sc.topY + 8 * s, lx, sc.topY + 2, lx + 10 * s, sc.topY + 10 * s, lx + 22 * s, sc.topY], o(BROWN, 1300, 2, 0.8));
+      // ふき出す水（ザーッ）
+      if (sc.leak > 0.02) {
+        var sy = D.gy - sc.level, col = sc.frozen > 0.5 ? COL.ice : COL.blue;
+        for (var i = 0; i < 3; i++) {
+          var pts = [];
+          for (var y = sc.topY + 6 * s; y < sy; y += 12 * s) pts.push(lx + (i - 1) * 6 * s + Math.sin(y * 0.2 + D.time * (sc.frozen > 0.5 ? 0 : 14) + i) * 2 * s, y);
+          if (pts.length > 2) L(ctx, pts, o(col, 1310 + i, 2, 0.8 * sc.leak));
+        }
       }
+    },
+    // 水は棒人間の前に描く（足が水につかって見える）
+    drawFront: function (ctx, sc, D) {
+      if (sc.level <= 0.5) return;
+      var s = D.s, st = D.st, sy = D.gy - sc.level, col = sc.frozen > 0.5 ? COL.ice : COL.blue, bot = st.y + st.h;
+      ctx.save(); ctx.globalAlpha = sc.frozen > 0.5 ? 0.3 : 0.22; ctx.fillStyle = col; ctx.fillRect(st.x - 40, sy, st.w + 80, bot - sy); ctx.restore();
+      var pts = [];
+      for (var i = 0; i <= 16; i++) { var x = st.x - 20 + (st.w + 40) * i / 16; pts.push(x, sy + (1 - sc.frozen) * Math.sin(x * 0.06 + D.time * 5) * 2.5 * s); }
+      L(ctx, pts, o(col, 1320, 2.4));
       if (sc.frozen > 0.3) {
-        // 氷のひび
-        L(ctx, [U.lerp(lx, rx, 0.3), sy + 2 * s, U.lerp(lx, rx, 0.36), sy + 12 * s, U.lerp(lx, rx, 0.32), sy + 20 * s], o(COL.chalk, 630, 1.4, 0.6 * sc.frozen));
-        L(ctx, [U.lerp(lx, rx, 0.7), sy + 2 * s, U.lerp(lx, rx, 0.64), sy + 14 * s], o(COL.chalk, 631, 1.4, 0.6 * sc.frozen));
+        L(ctx, [X(D, 0.3), sy + 3 * s, X(D, 0.34), sy + 14 * s], o(COL.chalk, 1330, 1.4, 0.6 * sc.frozen));
+        L(ctx, [X(D, 0.64), sy + 3 * s, X(D, 0.6), sy + 12 * s, X(D, 0.63), sy + 20 * s], o(COL.chalk, 1331, 1.4, 0.6 * sc.frozen));
+      } else {
+        for (var k = 0; k < 4; k++) { var wx = X(D, ((D.time * 0.1 + k * 0.27) % 1)); L(ctx, [wx, sy + 12 * s, wx + 16 * s, sy + 10 * s, wx + 30 * s, sy + 12 * s], o(COL.blue, 1340 + k, 1.4, 0.5)); }
       }
     }
   };

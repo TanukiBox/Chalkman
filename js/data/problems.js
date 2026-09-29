@@ -233,25 +233,31 @@
 
     // 7問目：雲の上を歩きたい（雲はふわふわの絵なので、足が沈む）
     {
-      id: 'c2s1', chapter: 2, route: 'sky', scene: 'cloudWalk',
-      title: { ja: '雲の上を歩きたい', en: 'Walking on clouds' },
+      id: 'c2s1', chapter: 2, route: 'sky', scene: 'bounceCloud',
+      title: { ja: 'はねる雲', en: 'The bouncy cloud' },
       text: {
-        ja: '木のてっぺんから、雲の落書きの上に出た！ でも雲はふわふわの絵。足がずぶずぶ沈んでいく…！ 向こうの雲まで行きたい。',
-        en: 'From the treetop, you reach the cloud doodles! But clouds are just fluffy drawings, and your feet are sinking! Get to the next cloud.'
+        ja: '木のてっぺんから、雲の落書きに飛びうつった。…ぼよよーん！ この雲、トランポリンみたいで跳ねるのが止まらない！ このままじゃ、空のかなたへ飛んでいっちゃう！',
+        en: 'You jumped from the treetop onto a cloud doodle... BOING! It\'s like a trampoline, and you can\'t stop bouncing! Keep this up and you\'ll fly off into the sky!'
       },
       rules: [
-        { tag: 'soft', result: 'success', act: 'cloudCarpet',
-          ja: 'やわらかい「{w}」を雲から雲へふわっとかけたら、沈まないじゅうたんになった！ その上を歩いて渡った。',
-          en: 'Laid the soft {w} from cloud to cloud, and it became a carpet that didn\'t sink! Walked right across.' },
-        { tag: 'long', result: 'success', act: 'cloudExtend',
-          ja: '長い「{w}」を向こうの雲までのばして、その上を渡った！',
-          en: 'Stretched the long {w} over to the next cloud and walked across it!' },
-        { tag: 'fly', result: 'success', act: 'cloudRide',
-          ja: '「{w}」に乗って、ふわりと向こうの雲へ飛んでいった！',
-          en: 'Hopped on the {w} and floated over to the next cloud!' },
-        { sub: 'sweets', result: 'funny', act: 'cottonCandy',
-          ja: '「{w}」を雲にのせたら、雲があまいわたあめに変わって、ふくらんで向こうの雲とくっついた！ つまみ食いしながら渡った。',
-          en: 'Put the {w} on the cloud, and it turned into sweet cotton candy, puffed up, and joined the next cloud! Snacked all the way across.' }
+        { word: 'のり/糊/ぼんど/せっちゃくざい/接着剤/glue', result: 'success', act: 'glueStop',
+          ja: '「{w}」を雲にぬったら、ぴたっ！ 足がくっついて、跳ねなくなった。べりっ、べりっ、と歩いて進んだ。',
+          en: 'Spread the {w} on the cloud, and your feet stuck fast! No more bouncing. Peeled your way forward, step by step.' },
+        { tag: 'heavy', result: 'success', act: 'weightStop',
+          ja: '重い「{w}」をかかえたら、ずしん！ 跳ねるのが止まった。そのまま、しっかり歩いて進んだ。',
+          en: 'Grabbed the heavy {w} and THUD! The bouncing stopped. Walked on with solid steps.' },
+        { tag: 'soft', result: 'success', act: 'softLand',
+          ja: 'やわらかい「{w}」を下にしいたら、ぼふっ！ はずみが止まった。',
+          en: 'Laid the soft {w} down and landed on it with a FLUMP. The bouncing stopped!' },
+        { tag: 'long', result: 'success', act: 'grabHold',
+          ja: '長い「{w}」を、となりの雲の風見どりに引っかけて、つかまった！ たぐりよせて進んだ。',
+          en: 'Hooked the long {w} onto the weathervane on the next cloud and held on tight! Pulled yourself along.' },
+        { tag: 'fly', result: 'success', act: 'catchRide',
+          ja: '跳ねたいきおいで「{w}」に飛び乗って、はねる雲からぬけだした！',
+          en: 'Used a big bounce to leap onto the {w} and fly away from the bouncy cloud!' },
+        { tag: 'sound', result: 'funny', act: 'bounceDance',
+          ja: '「{w}」の音に合わせて、ぼよん、ぼよん。おどりながら跳ねて、そのまま先へ進んでいった！',
+          en: 'Bounced along to the beat of the {w}, BOING, BOING, dancing all the way forward!' }
       ]
     },
 
@@ -362,25 +368,28 @@
 
     // 12問目：夜になる（ねむくなる）
     {
-      id: 'c2s6', chapter: 2, route: 'sky', scene: 'night',
-      title: { ja: '夜になった', en: 'Nightfall' },
+      id: 'c2s6', chapter: 2, route: 'sky', scene: 'nightFork',
+      title: { ja: '夜の分かれ道', en: 'The night crossroads' },
       text: {
-        ja: '空がだんだん暗くなって、夜になった。月と星の落書きがまたたいて…ふわぁ。ねむくて、立ったまま寝てしまいそう…',
-        en: 'The sky grows dark. Night falls. The moon and star doodles twinkle... *yawn*. So sleepy... might doze off standing up...'
+        ja: '夜になった。雲の道が3つに分かれている。自由帳へ行けるのは、どの道…？ 道しるべがあるけど、暗くて読めない！',
+        en: 'Night has fallen, and the cloud path splits three ways. Which one leads to the notebook? There\'s a signpost, but it\'s too dark to read!'
       },
       rules: [
-        { tag: 'sound', result: 'success', act: 'wakeUp',
-          ja: '「{w}」の音で、ぱっちり目がさめた！ 夜の雲の上を、元気に歩きだした。',
-          en: 'The {w} was so loud you snapped wide awake! Off across the night clouds!' },
-        { tag: 'soft', result: 'success', act: 'nap',
-          ja: 'やわらかい「{w}」でぐっすり眠ったら、朝になった！ 元気いっぱいで出発。',
-          en: 'Slept soundly on the soft {w} until morning! Off you go, full of energy.' },
-        { sub: 'drink', result: 'success', act: 'drinkWake',
-          ja: '「{w}」を飲んだら、目がぱっちり！ 夜の雲の上を歩きだした。',
-          en: 'Drank the {w} and felt wide awake! Off across the night clouds.' },
-        { sub: 'animal', result: 'funny', act: 'countSheep',
-          ja: '「{w}」を数えていたら…1ぴき、2ひき…数えるのが楽しくなって、目がさえてしまった！',
-          en: 'Started counting {w}s... one, two... it got so fun you ended up wide awake!' }
+        { word: 'こんぱす/らしんばん/羅針盤/ちず/地図/compass/map', result: 'success', act: 'readMap',
+          ja: '「{w}」で調べたら、自由帳は上の道の先！ 迷わずに進んだ。',
+          en: 'Checked the {w}: the notebook is up the top path! Off you went without a doubt.' },
+        { tag: 'glow', result: 'success', act: 'lightSign',
+          ja: '光る「{w}」で道しるべを照らしたら、「↑ 自由帳」と書いてあった！',
+          en: 'Lit up the signpost with the glowing {w}. It said "↑ Notebook"!' },
+        { sub: 'space', result: 'success', act: 'northStar',
+          ja: '「{w}」が夜空で光って、進む方角を教えてくれた！ 上の道だ！',
+          en: 'The {w} shone in the night sky and showed the way. The top path!' },
+        { sub: 'bird', result: 'success', act: 'birdGuide',
+          ja: '「{w}」が「こっちだよ」と、上の道へ案内してくれた！',
+          en: 'The {w} chirped "This way!" and led you up the top path!' },
+        { tag: 'sound', result: 'funny', act: 'echoPath',
+          ja: '「{w}」と大声を出したら、上の道からだけ、やまびこが返ってきた。こっちだ！',
+          en: 'You shouted "{w}!" and only the top path echoed back. That\'s the way!' }
       ]
     },
 
@@ -444,31 +453,34 @@
 
     // 8問目：地下水の川
     {
-      id: 'c2u2', chapter: 2, route: 'under', scene: 'river',
-      title: { ja: '地下の川', en: 'The underground river' },
+      id: 'c2u2', chapter: 2, route: 'under', scene: 'flood',
+      title: { ja: 'あふれる地下水', en: 'The rising water' },
       text: {
-        ja: 'ザーザー…地下水の川の落書き！ 流れが速くて、このままじゃ渡れない。',
-        en: 'Whoosh... an underground river doodle! The current\'s too fast to cross.'
+        ja: 'ザーザー…天井のひびから地下水がふき出して、水かさがどんどん上がってくる！ このままじゃ、流されてしまう！',
+        en: 'Whoosh... water is gushing from a crack in the ceiling, and it\'s rising fast! You\'ll be swept away!'
       },
       rules: [
-        { tag: 'hot', result: 'success', act: 'boilRiver',
-          ja: '熱い「{w}」で、川の水がぜんぶ湯気になった！ からっぽの川を歩いて渡った。',
-          en: 'The hot {w} turned the whole river into steam! Walked across the empty riverbed.' },
-        { tag: 'big', result: 'success', act: 'bridge',
-          ja: '大きな「{w}」を川にドボン！ 川をふさいで、その上を渡った。',
-          en: 'Dropped the big {w} into the river with a SPLASH, and walked across on top of it!' },
-        { tag: 'swim', result: 'success', act: 'boatCross',
-          ja: '「{w}」に乗って、流れにのりながら向こう岸へ渡った！',
-          en: 'Rode the {w} with the current all the way to the other bank!' },
-        { tag: 'cold', result: 'success', act: 'freezeRiver',
-          ja: '冷たい「{w}」で川がカチコチにこおった！ 氷の上をつるつる歩いて渡った。',
-          en: 'The cold {w} froze the river solid! Slid across the ice.' },
-        { tag: 'long', result: 'success', act: 'extend',
-          ja: '長い「{w}」を向こう岸までのばして、その上を渡った！',
-          en: 'Stretched the long {w} to the far bank and walked across!' },
-        { cat: 'person', result: 'funny', act: 'bailOut',
-          ja: '「{w}」がバケツで川の水をくみ出し始めた！ …3時間後。川はからっぽになって、歩いて渡れた。',
-          en: 'The {w} started bailing out the river with a bucket! ...Three hours later, it was empty. Walked right across.' }
+        { tag: 'swim', result: 'success', act: 'floatAway',
+          ja: '「{w}」につかまって、水にぷかぷか浮かびながら、先へ進んだ！',
+          en: 'Held onto the {w} and floated along on the water!' },
+        { tag: 'cold', result: 'success', act: 'freezeFlood',
+          ja: '冷たい「{w}」で、水がカチコチにこおった！ 氷の上を歩いて進んだ。',
+          en: 'The cold {w} froze the water solid! Walked across the ice.' },
+        { tag: 'hot', result: 'success', act: 'boilAway',
+          ja: '熱い「{w}」で、あふれた水がぜんぶ湯気になった！',
+          en: 'The hot {w} turned all the flood water into steam!' },
+        { tag: 'big', result: 'success', act: 'plugLeak',
+          ja: '大きな「{w}」で、水がふき出す天井のひびをふさいだ！ 水が引いて、歩いて進めた。',
+          en: 'Plugged the gushing crack in the ceiling with the big {w}! The water drained away.' },
+        { tag: 'fly', result: 'success', act: 'ride',
+          ja: '「{w}」に乗って、水の上を飛びこえていった！',
+          en: 'Rode the {w} right over the water!' },
+        { cat: 'person', result: 'funny', act: 'bailFlood',
+          ja: '「{w}」がバケツで水をくみ出し始めた！ …3時間後。水はすっかりなくなった。',
+          en: 'The {w} started bailing out the water with a bucket! ...Three hours later, it was all gone.' },
+        { sub: 'plant', result: 'funny', act: 'soakUp',
+          ja: '「{w}」が水をぐんぐん吸って、ぐんぐん育った！ 水がなくなって、大きくなった「{w}」の横を通りぬけた。',
+          en: 'The {w} soaked up all the water and grew huge! You walked on past the giant {w}.' }
       ]
     },
 

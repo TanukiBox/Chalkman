@@ -39,77 +39,115 @@
   //  空ルート
   // ============================================================
 
-  /** 雲に沈んだ足を、ぴょんと引きぬく */
-  function* unsink(D) {
-    var sc = D.sc, m = D.man;
-    if (!sc.sinking) return;
-    sc.sinking = false;
-    yield D.hop(m, m.x, D.gy, 18 * D.s, 0.35);
-    sc.sink = 0;
+  /** はねる雲：次に着地したところで、跳ねるのを止める */
+  function* stopBounce(D) {
+    var sc = D.sc;
+    if (!sc.bouncing) return;
+    sc.stopAtLand = true;
+    yield function () { return sc.stopped; };
   }
 
-  // 7問目：やわらかい文字を、雲から雲へかけて歩く（柔らかい）
-  A.cloudCarpet = function* (D) {
-    var w = D.w, s = D.s, sc = D.sc, m = D.man, g = sc.gap;
-    yield* unsink(D);
-    pop(D, 'sfx_fuwa', w.x, topOf(w) - 20 * s, COL.pink, 18);
-    var baseW = w.width * w.scale, x0 = g.x0 - 24 * s, x1 = g.x1 + 24 * s, need = (x1 - x0) / baseW, wx = w.x, wy = w.y;
-    yield D.tween(0.5, function (k) { w.x = U.lerp(wx, x0 + baseW / 2, k); w.y = U.lerp(wy, D.gy - w.dispH() / 2, k); });
-    D.sfx.play('stretch');
-    yield D.tween(0.9, function (k) {
-      w.sx = U.lerp(1, need, U.easeOut(k)); w.sy = U.lerp(1, 0.6, k);
-      w.x = x0 + baseW * w.sx / 2; w.y = D.gy - w.dispH() / 2 - 7 * s;   // 雲のもこもこの上にのせる
-    });
-    // 棒人間が乗ったところが、ふわっと沈む
-    var sag = function (x, k) { if (x < g.x0 || x > g.x1) return 0; var u = (x - g.x0) / (g.x1 - g.x0); return Math.sin(u * PI) * (6 + 8 * k) * s; };
-    D.follow(function () {
-      var near = m.x > g.x0 && m.x < g.x1 ? 1 : 0;
-      m.gy = topOf(w) + 1 + sag(m.x, near);
-      for (var i = 0; i < w.chars.length; i++) w.off[i].y = sag(w.charPos(i)[0], near) / (w.scale * w.sy);
-    });
-    yield 0.3;
-    D.sfx.play('boing');
-    yield D.walkTo(exitX(D), { anim: 'walk', speed: 72 * D.s });
+  // 7問目：のりで、足が雲にくっつく（決まった単語）
+  A.glueStop = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, m = D.man, x0 = w.x, s0 = w.scale;
+    var gs = Math.min(s0, (70 * s) / w.width);
+    w.tint = COL.yellow;
+    yield D.tween(0.5, function (k) { w.x = U.lerp(x0, m.x, k); w.scale = U.lerp(s0, gs, k); w.sy = U.lerp(1, 0.35, k); onGround(D, w, D.gy + 3 * s); });
+    pop(D, 'sfx_nuri', w.x, D.gy - 30 * s, COL.yellow, 16);
+    yield* stopBounce(D);
+    D.sfx.play('flop');
+    pop(D, 'sfx_pita', m.x + 30 * s, D.gy - 120 * s, COL.yellow, 20);
+    m.play('puzzled');
+    yield 0.6;
+    var t = 0;
+    D.follow(function (dt) { t += dt; if (t > 0.55) { t = 0; D.sfx.play('flop'); D.fx.word(D.T('sfx_beri'), m.x - 10 * s, D.gy - 20 * s, { size: 12 * s + 4, color: COL.yellow, life: 0.6 }); } });
+    yield D.walkTo(exitX(D), { anim: 'sneak', speed: 50 * s });
   };
-  // 長い文字を、向こうの雲までのばす（長い）
-  A.cloudExtend = function* (D) {
-    var w = D.w, s = D.s, sc = D.sc, m = D.man, g = sc.gap;
-    yield* unsink(D);
-    var baseW = w.width * w.scale, x0 = g.x0 - 30 * s, x1 = g.x1 + 30 * s, need = (x1 - x0) / baseW, wx = w.x, wy = w.y;
-    yield D.tween(0.5, function (k) { w.x = U.lerp(wx, x0 + baseW / 2, k); w.y = U.lerp(wy, D.gy - w.dispH() / 2, k); });
-    D.sfx.play('stretch');
-    pop(D, 'sfx_stretch', (x0 + x1) / 2, D.gy - 60 * s, COL.chalk, 22);
-    yield D.tween(0.9, function (k) { w.sx = U.lerp(1, need, U.easeBack(k)); w.x = x0 + baseW * w.sx / 2; });
-    yield D.walkTo(x0 - 6 * s, { anim: 'walk' });
-    yield D.hop(m, x0 + 20 * s, topOf(w) + 1, 14 * s, 0.35);
-    yield D.walkTo(x1 - 16 * s, { anim: 'walk' });
-    yield D.hop(m, x1 + 16 * s, D.gy, 12 * s, 0.35);
+
+  // 重い文字をかかえて、ずしん（重い）
+  A.weightStop = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, m = D.man, x0 = w.x;
+    yield D.tween(0.5, function (k) { w.x = U.lerp(x0, m.x + 34 * s + w.dispW() / 2, k); onGround(D, w); });
+    yield* stopBounce(D);
+    D.held = 'front';
+    D.sfx.play('thud'); D.fx.shake(8, 0.4);
+    D.fx.dust(m.x, D.gy, 12, { angle: -PI / 2, spread: 2.6, speed: 70, g: 120 });
+    pop(D, 'sfx_zushi', m.x + 30 * s, D.gy - 120 * s, COL.chalk, 22);
+    yield 0.6;
+    yield D.walkTo(exitX(D), { anim: 'walk', speed: 55 * s });
+  };
+
+  // やわらかい文字の上に、ぼふっ（柔らかい）
+  A.softLand = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, m = D.man, x0 = w.x, s0 = w.scale;
+    var fs = Math.min(s0 * 1.3, (90 * s) / w.width);
+    yield D.tween(0.5, function (k) { w.x = U.lerp(x0, m.x, k); w.scale = U.lerp(s0, fs, k); w.sy = U.lerp(1, 0.6, k); onGround(D, w); });
+    sc.landY = topOf(w) + 1;
+    yield* stopBounce(D);
+    D.sfx.play('boing');
+    pop(D, 'sfx_bofu', m.x + 30 * s, sc.landY - 110 * s, COL.chalk, 20);
+    yield D.tween(0.4, function (k) { w.sy = 0.6 - 0.2 * Math.sin(k * PI); onGround(D, w); m.gy = topOf(w) + 1; });
+    cheer(D);
+    yield 0.8;
+    yield D.hop(m, w.x + w.dispW() / 2 + 20 * s, D.gy, 16 * s, 0.35);
     yield D.walkTo(exitX(D));
   };
-  // 乗って飛んでいく（飛ぶ）
-  A.cloudRide = function* (D) { yield* unsink(D); yield* A.ride(D); };
 
-  // 雲がわたあめになって、向こうの雲とくっつく（お菓子・珍回答）
-  A.cottonCandy = function* (D) {
+  // 長い文字を風見どりに引っかけて、つかまる（長い）
+  A.grabHold = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, m = D.man, v = sc.vane;
+    yield* stopBounce(D);
+    var baseW = w.width * w.scale, hook = { x: v.x - 4 * s, y: v.y - 40 * s };
+    var place = function () {
+      var j = m.joints, hx = j ? j.handF[0] : m.x + 10 * s, hy = j ? j.handF[1] : D.gy - 70 * s;
+      var dx = hook.x - hx, dy = hook.y - hy, len = Math.hypot(dx, dy);
+      w.x = (hx + hook.x) / 2; w.y = (hy + hook.y) / 2; w.rot = Math.atan2(dy, dx); w.sx = Math.max(0.3, len / baseW);
+    };
+    var x0 = w.x, y0 = w.y;
+    D.sfx.play('whoosh');
+    yield D.tween(0.5, function (k) { place(); var tx = w.x, ty = w.y, r = w.rot, sx = w.sx; w.x = U.lerp(x0, tx, k); w.y = U.lerp(y0, ty, k); w.rot = r * k; w.sx = U.lerp(1, sx, k); });
+    D.sfx.play('clink');
+    pop(D, 'sfx_gyu', hook.x, hook.y - 30 * s, COL.chalk, 18);
+    D.follow(place);
+    m.play('push');
+    var mx = m.x;
+    yield D.tween(2.4, function (k) { m.x = U.lerp(mx, v.x - 50 * s, k); m.gy = D.gy - Math.sin(k * PI) * 6 * s; });
+    D.clearFollow();
+    m.gy = D.gy;
+    yield D.hop(m, v.x - 10 * s, v.y, 30 * s, 0.5);
+    cheer(D);
+    yield 0.6;
+    yield D.walkTo(exitX(D));
+  };
+
+  // 跳ねたいきおいで、飛ぶ文字に飛び乗る（飛ぶ）
+  A.catchRide = function* (D) {
     var w = D.w, s = D.s, sc = D.sc, m = D.man, x0 = w.x, y0 = w.y;
-    yield* unsink(D);
-    // 文字が雲にしみこむ
-    yield D.tween(0.6, function (k) { w.x = U.lerp(x0, D.st.x + D.st.w * 0.36, k); w.y = y0 + 30 * s * k * k; w.alpha = 1 - k; });
-    D.sfx.play('sparkle');
-    pop(D, 'cottonCandy', D.st.x + D.st.w * 0.4, D.gy - 70 * s, COL.pink, 20);
-    yield D.tween(0.8, function (k) { sc.pink = k; });
-    D.sfx.play('grow');
-    yield D.tween(1.0, function (k) { sc.grow = U.easeOut(k); });
-    // つまみ食い
-    m.play('eat');
-    pop(D, 'sfx_munch', m.x + 20 * s, D.gy - 110 * s, COL.pink, 18);
-    for (var i = 0; i < 3; i++) {
-      D.sfx.play('munch');
-      D.fx.add({ type: 'crumb', x: m.x + 14 * s, y: D.gy - 70 * s, vx: (Math.random() - 0.5) * 60, vy: -30, g: 300, life: 0.6, size: 3 * s, color: COL.pink });
-      yield 0.35;
-    }
-    m.play('idle');
-    yield D.walkTo(exitX(D), { anim: 'walk', speed: 72 * D.s });
+    D.sfx.play('fly');
+    var ty = D.gy - sc.amp - 4 * s;
+    yield D.tween(0.6, function (k) { w.x = U.lerp(x0, m.x + 4 * s, k); w.y = U.lerp(y0, ty + w.dispH() / 2, k); });
+    // いちばん高いところで、飛び乗る
+    yield function () { var ph = (sc.bt % sc.period) / sc.period; return ph > 0.45 && ph < 0.6; };
+    sc.bouncing = false;
+    m.play('ride');
+    D.follow(function () { m.x = w.x - 4 * s; m.gy = topOf(w) + 1; });
+    pop(D, 'sfx_fuwa', m.x, topOf(w) - 70 * s, COL.chalk, 18);
+    var wx = w.x, wy = w.y;
+    yield D.tween(2.0, function (k) { w.x = U.lerp(wx, exitX(D) + 60 * s, U.easeIn(k)); w.y = wy - 30 * s * k + Math.sin(k * 10) * 3 * s; w.rot = Math.sin(k * 8) * 0.05; });
+  };
+
+  // 音楽に合わせて、跳ねながら踊って進む（音が出る・珍回答）
+  A.bounceDance = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, m = D.man, t = 0, k = 0;
+    sc.fixedAmp = true; sc.amp = 48 * s; sc.bounceAnim = 'cheer';
+    D.follow(function (dt) {
+      t += dt;
+      if (t > 0.42) { t = 0; k++; D.sfx.play('note', k); D.fx.add({ type: 'note', text: k % 2 ? '♪' : '♫', x: w.x, y: w.y - 20 * s, vy: -40, vx: (Math.random() - 0.5) * 40, life: 1.1, size: 16 * s + 4, color: COL.yellow }); }
+    });
+    pop(D, 'sfx_boyon', m.x + 30 * s, D.gy - 120 * s, COL.yellow, 18);
+    yield 1.4;
+    var mx = m.x;
+    yield D.tween(3.2, function (q) { m.x = U.lerp(mx, exitX(D) + 20 * s, q); });
   };
 
   // 8問目：大きな音で、鳥がちりぢりに（音が出る）
@@ -405,83 +443,93 @@
     yield* intoGate(D);
   };
 
-  // 12問目：大きな音で目がさめる（音が出る）
-  A.wakeUp = function* (D) {
+  /** 夜の分かれ道：上の道を歩いていく */
+  function* walkUpPath(D) {
+    var m = D.man, s = D.s, sc = D.sc;
+    yield D.walkTo(sc.forkX, { anim: 'walk', speed: 72 * s });
+    m.play('walk');
+    var x0 = m.x, x1 = exitX(D) + 20 * s;
+    yield D.tween((x1 - x0) / (72 * s), function (k) { m.x = U.lerp(x0, x1, k); m.gy = CM.SCENES.nightFork.pathY(sc, D, 'up', m.x); });
+  }
+  function showArrow(D) { return D.tween(0.6, function (k) { D.sc.arrow = k; }); }
+
+  // 12問目：コンパス・地図で調べる（決まった単語）
+  A.readMap = function* (D) {
+    var s = D.s, m = D.man;
+    yield* pickUp(D, 'front');
+    m.play('hold');
+    pop(D, 'q', m.x + 20 * s, D.gy - 130 * s, COL.chalk, 16);
+    yield 0.8;
+    pop(D, 'upPath', m.x + 20 * s, D.gy - 140 * s, COL.yellow, 18);
+    D.sfx.play('sparkle');
+    yield showArrow(D);
+    yield* walkUpPath(D);
+  };
+
+  // 光る文字で、道しるべを照らす（光る）
+  A.lightSign = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, x0 = w.x, y0 = w.y;
+    w.tint = COL.yellow;
+    var Lt = { x: w.x, y: w.y, r: 20 * s };
+    sc.lights.push(Lt);
+    D.follow(function () { Lt.x = w.x; Lt.y = w.y; });
+    yield D.tween(0.8, function (k) { w.x = U.lerp(x0, sc.forkX - 60 * s, k); w.y = U.lerp(y0, D.gy - 130 * s, k); Lt.r = U.lerp(20 * s, 120 * s, k); });
+    D.sfx.play('glow');
+    sc.signLit = true;
+    pop(D, 'sfx_pika', w.x, w.y - 30 * s, COL.yellow, 20);
+    yield 0.8;
+    yield showArrow(D);
+    yield* walkUpPath(D);
+  };
+
+  // 宇宙の文字が夜空で光って、方角を教える（宇宙）
+  A.northStar = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, x0 = w.x, y0 = w.y;
+    w.tint = COL.yellow;
+    D.sfx.play('fly');
+    yield D.tween(1.0, function (k) { w.x = U.lerp(x0, X(D, 0.86), U.easeInOut(k)); w.y = U.lerp(y0, D.st.y + D.st.h * 0.2, U.easeInOut(k)); });
+    D.sfx.play('glow');
+    rays(D, w);
+    sc.lights.push({ x: w.x, y: w.y, r: 70 * s });
+    pop(D, 'upPath', w.x - 40 * s, w.y + 40 * s, COL.yellow, 18);
+    yield showArrow(D);
+    yield* walkUpPath(D);
+  };
+
+  // 鳥の文字が、上の道へ案内する（鳥）
+  A.birdGuide = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, m = D.man, x0 = w.x, y0 = w.y, t = 0;
+    var s0 = w.scale, sm = Math.min(s0, (44 * s) / w.width);
+    D.sfx.play('fly');
+    yield D.tween(0.6, function (k) { w.scale = U.lerp(s0, sm, k); w.x = U.lerp(x0, m.x + 60 * s, k); w.y = U.lerp(y0, D.gy - 90 * s, k); });
+    pop(D, 'thisWay', w.x, w.y - 30 * s, COL.blue, 16);
+    D.follow(function (dt) {
+      t += dt;
+      var tx = m.x + 70 * s;
+      w.x = tx; w.y = CM.SCENES.nightFork.pathY(sc, D, 'up', tx) - 90 * s + Math.sin(t * 6) * 6 * s;
+      for (var i = 0; i < w.off.length; i++) w.off[i].y = Math.sin(t * 14 + i) * 5;
+    });
+    yield* walkUpPath(D);
+  };
+
+  // 大声を出すと、上の道からだけ、やまびこ（音が出る・珍回答）
+  A.echoPath = function* (D) {
     var w = D.w, s = D.s, sc = D.sc, m = D.man;
-    yield D.tween(0.25, function (k) { w.sx = w.sy = 1 + 0.3 * k; });
     D.sfx.play('boom');
     for (var i = 0; i < 3; i++) D.fx.ring(w.x, w.y, 10 * s, D.st.w * (0.4 + i * 0.2), { life: 0.7 + i * 0.15, size: 2.4 });
-    pop(D, 'sfx_jaan', w.x, w.y - 40 * s, COL.yellow, 26);
-    yield D.tween(0.25, function (k) { w.sx = w.sy = 1.3 - 0.3 * k; });
-    sc.sleepy = false;
-    yield D.hop(m, m.x, D.gy, 34 * s, 0.4);
-    pop(D, 'awake', m.x, D.gy - 130 * s, COL.chalk, 20);
-    cheer(D);
-    yield 0.9;
-    yield D.walkTo(exitX(D));
-  };
-
-  // やわらかい文字でぐっすり眠って、朝になる（柔らかい）
-  A.nap = function* (D) {
-    var w = D.w, s = D.s, sc = D.sc, m = D.man, x0 = w.x;
-    var bw = 90 * s, bs = bw / w.width;
-    yield D.tween(0.6, function (k) { w.x = U.lerp(x0, m.x + 40 * s, k); w.scale = U.lerp(w.scale, bs, k); w.sy = U.lerp(1, 0.55, k); onGround(D, w); });
-    D.sfx.play('boing');
-    pop(D, 'sfx_fuwa', w.x, topOf(w) - 30 * s, COL.chalk, 16);
-    yield D.hop(m, w.x - 30 * s, topOf(w) + 1, 16 * s, 0.4);
-    m.play('lie');
-    sc.sleepy = false;
-    for (var i = 0; i < 3; i++) { D.fx.word('Zz', m.x + 10 * s, topOf(w) - 40 * s, { size: 16 * s + 4, color: COL.blue, vy: -24, rot: -0.2, life: 1.4 }); D.sfx.play('yawn'); yield 0.7; }
-    // 夜が明ける
-    yield D.tween(1.8, function (k) { sc.night = 1 - k; sc.sun = U.easeOut(k); });
-    pop(D, 'morning', X(D, 0.6), D.gy - 150 * s, COL.orange, 22);
-    yield D.hop(m, w.x + w.dispW() / 2 + 16 * s, D.gy, 30 * s, 0.45);
-    cheer(D);
-    yield 0.9;
-    yield D.walkTo(exitX(D));
-  };
-
-  // 飲み物を飲んで、目がぱっちり（飲み物）
-  A.drinkWake = function* (D) {
-    var sc = D.sc, s = D.s, m = D.man;
-    sc.sleepy = false;
-    yield* A.drink(D);
-    pop(D, 'awake', m.x, D.gy - 130 * s, COL.chalk, 20);
-    yield 0.4;
-    yield D.walkTo(exitX(D));
-  };
-
-  // 動物を数えていたら、楽しくなって目がさえる（動物・珍回答）
-  A.countSheep = function* (D) {
-    var w = D.w, s = D.s, sc = D.sc, m = D.man;
-    var fx = X(D, 0.7), fh = 34 * s;
-    // さく
-    D.chalkHook(function (ctx) {
-      CM.chalk.line(ctx, [fx - 14 * s, D.gy, fx - 14 * s, D.gy - fh], { w: 2.4, color: COL.orange, seed: 1 });
-      CM.chalk.line(ctx, [fx + 14 * s, D.gy, fx + 14 * s, D.gy - fh], { w: 2.4, color: COL.orange, seed: 2 });
-      CM.chalk.line(ctx, [fx - 20 * s, D.gy - fh * 0.75, fx + 20 * s, D.gy - fh * 0.75], { w: 2.2, color: COL.orange, seed: 3 });
-      CM.chalk.line(ctx, [fx - 20 * s, D.gy - fh * 0.35, fx + 20 * s, D.gy - fh * 0.35], { w: 2.2, color: COL.orange, seed: 4 });
-    });
-    var small = Math.min(w.scale, (54 * s) / w.width);
-    var x0 = w.x;
-    yield D.tween(0.4, function (k) { w.scale = U.lerp(w.scale, small, k); w.x = U.lerp(x0, X(D, 0.5), k); onGround(D, w); });
-    var sheep = [w];
-    for (var i = 0; i < 5; i++) { var c = D.copy(); c.scale = small; c.alpha = 0; sheep.push(c); }
-    for (i = 0; i < sheep.length; i++) {
-      var sh = sheep[i], sx = X(D, 0.5), ex = X(D, 0.9);
-      sh.alpha = 1;
-      yield D.tween(0.55, function (k) { sh.x = U.lerp(sx, ex, k); onGround(D, sh); sh.y -= Math.sin(k * PI) * (fh + 24 * s); sh.rot = (k - 0.5) * 0.5; });
-      D.sfx.play('boing');
-      D.fx.word(D.T('countN', { n: i + 1 }), fx, D.gy - fh - 60 * s, { size: 18 * s + 4, color: COL.yellow, life: 0.8 });
-      if (i === 2) { sc.sleepy = false; m.play('idle'); }
-      if (i > 2) { m.play('cheer'); }
-      sh.alpha = 0;
-      yield 0.08;
-    }
-    pop(D, 'wideAwake', m.x, D.gy - 140 * s, COL.chalk, 18);
-    m.play('puzzled');
     yield 1.0;
-    yield D.walkTo(exitX(D));
+    var ex = X(D, 0.92);
+    D.fx.word('…', ex, CM.SCENES.nightFork.pathY(sc, D, 'mid', ex) - 40 * s, { size: 18 * s + 4, life: 1.2 });
+    D.fx.word('…', ex, CM.SCENES.nightFork.pathY(sc, D, 'low', ex) - 30 * s, { size: 18 * s + 4, life: 1.2 });
+    yield 0.4;
+    D.sfx.play('note', 3);
+    D.fx.word(w.text + '〜', ex - 20 * s, CM.SCENES.nightFork.pathY(sc, D, 'up', ex) - 40 * s, { size: 16 * s + 4, color: COL.yellow, life: 1.6, vy: -10 });
+    yield 0.8;
+    m.play('cheer');
+    pop(D, 'thisWay', m.x, D.gy - 130 * s, COL.chalk, 16);
+    yield 0.6;
+    yield showArrow(D);
+    yield* walkUpPath(D);
   };
 
   // 13問目：流れ星から、やわらかい文字の上へ飛びおりる（柔らかい）
@@ -680,79 +728,115 @@
     yield D.walkTo(exitX(D));
   };
 
-  // 8問目：泳ぐ文字に乗って、川を渡る（泳ぐ）
-  A.boatCross = function* (D) {
-    var w = D.w, s = D.s, sc = D.sc, m = D.man, g = sc.gap, x0 = w.x, y0 = w.y;
-    var sy = CM.SCENES.river.surfaceY(sc, D);
-    yield D.tween(0.5, function (k) { w.x = U.lerp(x0, g.x0 + 40 * s, k); w.y = U.lerp(y0, sy - w.dispH() * 0.2, k) - Math.sin(k * PI) * 20 * s; });
+  // 8問目：泳ぐ文字につかまって、浮かんで進む（泳ぐ）
+  A.floatAway = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, m = D.man, x0 = w.x;
+    var sy = function () { return CM.SCENES.flood.surfaceY(sc, D); };
     D.sfx.play('splash');
-    D.fx.dust(w.x, sy, 8, { angle: -PI / 2, spread: 1.6, speed: 80, g: 300, color: COL.blue });
-    yield D.walkTo(g.x0 - 10 * s, { anim: 'walk' });
-    yield* mount(D);
+    yield D.tween(0.5, function (k) { w.x = U.lerp(x0, m.x + 34 * s, k); w.y = U.lerp(w.y, sy() - w.dispH() * 0.25, k); });
+    yield D.hop(m, w.x - 4 * s, topOf(w) + 24 * s, 20 * s, 0.4);
+    m.play('ride');
+    D.follow(function () { w.y = sy() - w.dispH() * 0.25 + Math.sin(D.time * 4) * 2 * s; w.rot = Math.sin(D.time * 3) * 0.06; m.x = w.x - 4 * s; m.gy = topOf(w) + 1; });
     pop(D, 'sfx_puka', w.x, topOf(w) - 70 * s, COL.blue, 18);
-    var wx = w.x, wy = w.y;
-    yield D.tween(2.0, function (k) { w.x = U.lerp(wx, g.x1 - 40 * s, U.easeInOut(k)); w.y = wy + Math.sin(k * 14) * 3 * s; w.rot = Math.sin(k * 10) * 0.08; });
-    D.clearFollow();
-    yield D.hop(m, g.x1 + 24 * s, D.gy, 24 * s, 0.45);
-    cheer(D);
-    yield 0.6;
-    yield D.walkTo(exitX(D));
+    var wx = w.x;
+    yield D.tween(2.6, function (k) { w.x = U.lerp(wx, exitX(D) + 40 * s, k); });
   };
 
-  // 冷たい文字で川がこおって、つるつる渡る（冷たい）
-  A.freezeRiver = function* (D) {
-    var w = D.w, s = D.s, sc = D.sc, m = D.man, g = sc.gap, x0 = w.x, y0 = w.y;
-    var sy = CM.SCENES.river.surfaceY(sc, D);
+  // 冷たい文字で、水がこおる（冷たい）
+  A.freezeFlood = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, m = D.man, x0 = w.x, y0 = w.y;
     w.tint = COL.ice;
-    yield D.tween(0.6, function (k) { w.x = U.lerp(x0, (g.x0 + g.x1) / 2, k); w.y = U.lerp(y0, sy - w.dispH() * 0.1, k) - Math.sin(k * PI) * 30 * s; });
+    var sy = CM.SCENES.flood.surfaceY(sc, D);
+    yield D.tween(0.5, function (k) { w.x = U.lerp(x0, X(D, 0.5), k); w.y = U.lerp(y0, sy - w.dispH() * 0.2, k) - Math.sin(k * PI) * 30 * s; });
     D.sfx.play('freeze');
-    pop(D, 'sfx_kachi', w.x, sy - 50 * s, COL.ice, 22);
-    for (var i = 0; i < 12; i++) D.fx.add({ type: 'frost', x: U.lerp(g.x0, g.x1, Math.random()), y: sy - Math.random() * 10 * s, vy: -10, vr: 2, life: 1.2, size: 5 * s, color: COL.ice });
+    pop(D, 'sfx_kachi', w.x, sy - 60 * s, COL.ice, 22);
+    for (var i = 0; i < 14; i++) D.fx.add({ type: 'frost', x: D.st.x + Math.random() * D.st.w, y: sy - Math.random() * 10 * s, vy: -10, vr: 2, life: 1.2, size: 5 * s, color: COL.ice });
+    sc.rise = 0;
     yield D.tween(0.8, function (k) { sc.frozen = k; });
-    yield D.walkTo(g.x0 - 6 * s, { anim: 'walk' });
-    yield D.hop(m, g.x0 + 24 * s, sy, 10 * s, 0.3);
+    yield D.hop(m, m.x + 10 * s, sy, 14 * s, 0.35);
     pop(D, 'sfx_tsuru', m.x + 40 * s, sy - 110 * s, COL.ice, 18);
-    D.sfx.play('whoosh');
-    var mx = m.x;
-    m.play('idle');
-    yield D.tween(1.1, function (k) { m.x = U.lerp(mx, g.x1 - 24 * s, k); });
-    yield D.hop(m, g.x1 + 20 * s, D.gy, 16 * s, 0.35);
+    yield D.walkTo(exitX(D), { anim: 'walk', speed: 72 * s });
+  };
+
+  // 熱い文字で、水が湯気になる（熱い）
+  A.boilAway = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, x0 = w.x, y0 = w.y;
+    w.tint = COL.red;
+    D.sfx.play('fire');
+    yield D.tween(0.6, function (k) { w.x = U.lerp(x0, X(D, 0.5), k); w.y = U.lerp(y0, D.gy - 70 * s, k); });
+    pop(D, 'sfx_shuwa', w.x, w.y - 50 * s, COL.chalk, 20);
+    D.sfx.play('swirl');
+    sc.rise = 0;
+    var l0 = sc.level;
+    yield D.tween(2.0, function (k) {
+      sc.level = l0 * (1 - k); sc.leak = 1 - k;
+      if (Math.random() < 0.6) D.fx.add({ type: 'steam', x: D.st.x + Math.random() * D.st.w, y: D.gy - sc.level, vy: -40, life: 1.0, size: 2.4 * s, color: COL.chalk });
+    });
+    w.tint = null;
     cheer(D);
     yield 0.6;
     yield D.walkTo(exitX(D));
   };
 
-  // 人がバケツで川の水をくみ出す。3時間後…（人・珍回答）
-  A.bailOut = function* (D) {
-    var w = D.w, s = D.s, sc = D.sc, m = D.man, g = sc.gap, x0 = w.x;
-    yield D.tween(0.6, function (k) { w.x = U.lerp(x0, g.x0 - w.dispW() / 2 + 6 * s, k); onGround(D, w); w.y -= Math.abs(Math.sin(k * PI * 3)) * 8 * s; });
-    pop(D, 'sfx_zabaa', g.x0 + 30 * s, D.gy - 60 * s, COL.blue, 18);
-    for (var i = 0; i < 6; i++) {
-      yield D.tween(0.22, function (k) { w.rot = 0.5 * k; });
-      D.sfx.play('splash');
-      D.fx.dust(g.x0 + 10 * s, D.gy - 10 * s, 10, { angle: -PI / 2 - 0.9, spread: 0.6, speed: 160, g: 400, color: COL.blue, size: 2 });
-      yield D.tween(0.22, function (k) { w.rot = 0.5 * (1 - k); });
-      sc.water = Math.max(0.55, 1 - (i + 1) * 0.08);
-    }
-    // …3時間後
-    var st = D.st;
-    D.fx.word(D.T('threeHours'), st.x + st.w / 2, st.y + st.h * 0.4, { size: 24 * s + 6, color: COL.chalk, life: 1.6, vy: 0, rot: 0 });
-    yield D.tween(1.4, function (k) { sc.water = U.lerp(0.55, 0, k); });
-    m.play('puzzled');
-    yield 0.5;
-    yield* walkRiverbed(D);
-  };
-  /** からっぽになった川底を、歩いて渡る */
-  function* walkRiverbed(D) {
-    var m = D.man, sc = D.sc, g = sc.gap;
-    yield D.walkTo(g.x0, { anim: 'walk' });
-    var bedAt = function (x) { var u = U.clamp((x - g.x0) / (g.x1 - g.x0), 0, 1); return D.gy + sc.bed * 0.92 * Math.pow(Math.sin(u * PI), 0.5); };
-    m.play('walk');
-    var mx = m.x;
-    yield D.tween(2.0, function (k) { m.x = U.lerp(mx, g.x1, k); m.gy = bedAt(m.x); });
-    m.gy = D.gy;
+  // 大きな文字で、天井のひびをふさぐ（大きい）
+  A.plugLeak = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, x0 = w.x, y0 = w.y, s0 = w.scale;
+    var big = Math.min(s0 * 1.6, (D.st.w * 0.3) / w.width);
+    D.sfx.play('grow');
+    yield D.tween(0.8, function (k) { w.scale = U.lerp(s0, big, k); w.x = U.lerp(x0, sc.leakX, k); w.y = U.lerp(y0, sc.topY + w.dispH() / 2 + 2, U.easeOut(k)); });
+    D.sfx.play('thud'); D.fx.shake(5, 0.3);
+    pop(D, 'sfx_kyu', sc.leakX + 40 * s, sc.topY + 60 * s, COL.chalk, 20);
+    sc.rise = 0;
+    yield D.tween(0.5, function (k) { sc.leak = 1 - k; });
+    var l0 = sc.level;
+    D.sfx.play('swirl');
+    yield D.tween(1.4, function (k) { sc.level = l0 * (1 - k); });
+    cheer(D);
+    yield 0.6;
     yield D.walkTo(exitX(D));
-  }
+  };
+
+  // 人がバケツで水をくみ出す。3時間後…（人・珍回答）
+  A.bailFlood = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, m = D.man, x0 = w.x;
+    yield D.tween(0.5, function (k) { w.x = U.lerp(x0, X(D, 0.5), k); onGround(D, w); });
+    pop(D, 'sfx_zabaa', w.x, D.gy - 70 * s, COL.blue, 18);
+    sc.rise = 0;
+    for (var i = 0; i < 5; i++) {
+      yield D.tween(0.22, function (k) { w.rot = -0.5 * k; });
+      D.sfx.play('splash');
+      D.fx.dust(w.x - w.dispW() / 2, D.gy - 20 * s, 10, { angle: -PI / 2 - 0.9, spread: 0.6, speed: 160, g: 400, color: COL.blue, size: 2 });
+      yield D.tween(0.22, function (k) { w.rot = -0.5 * (1 - k); });
+      sc.level *= 0.9;
+    }
+    var st = D.st, l0 = sc.level;
+    D.fx.word(D.T('threeHours'), st.x + st.w / 2, st.y + st.h * 0.4, { size: 24 * s + 6, color: COL.chalk, life: 1.6, vy: 0, rot: 0 });
+    yield D.tween(1.4, function (k) { sc.level = l0 * (1 - k); sc.leak = 1 - k; });
+    m.play('puzzled');
+    yield 0.6;
+    yield D.walkTo(exitX(D));
+  };
+
+  // 植物が水を吸って、ぐんぐん育つ（植物・珍回答）
+  A.soakUp = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, x0 = w.x, sx = X(D, 0.5), top = D.gy;
+    yield D.tween(0.5, function (k) { w.x = U.lerp(x0, sx, k); onGround(D, w); });
+    D.chalkHook(function (ctx) {
+      if (top >= D.gy - 2) return;
+      var pts = [];
+      for (var q = 0; q <= 10; q++) pts.push(sx + Math.sin(q * 1.3 + D.time * 2) * 4 * s, U.lerp(D.gy, top, q / 10));
+      CM.chalk.line(ctx, pts, { w: 3, color: COL.green, seed: 3 });
+      for (q = 1; q < 10; q += 2) { var ly = U.lerp(D.gy, top, q / 10), d = q % 4 === 1 ? 1 : -1; CM.chalk.line(ctx, [sx, ly, sx + d * 14 * s, ly - 8 * s, sx + d * 4 * s, ly - 2 * s], { w: 2, color: COL.green, seed: 10 + q }); }
+    });
+    pop(D, 'sfx_gokugoku', sx, D.gy - 60 * s, COL.green, 20);
+    D.sfx.play('grow');
+    sc.rise = 0;
+    var l0 = sc.level;
+    yield D.tween(2.0, function (k) { sc.level = l0 * (1 - k); sc.leak = 1 - k * 0.8; top = D.gy - 150 * s * k; onGround(D, w, top); w.scale *= 1.004; });
+    D.man.play('puzzled');
+    yield 0.6;
+    yield D.walkTo(exitX(D));
+  };
 
   // 9問目：やわらかい文字を足の下にしいて、音を立てずに（柔らかい）
   A.tiptoe = function* (D) {
@@ -1216,23 +1300,6 @@
     cheer(D);
     yield 0.6;
     yield D.walkTo(exitX(D));
-  };
-
-  // 地下8問目：熱い文字で、川の水が湯気に（熱い）
-  A.boilRiver = function* (D) {
-    var w = D.w, s = D.s, sc = D.sc, g = sc.gap, x0 = w.x, y0 = w.y;
-    w.tint = COL.red;
-    D.sfx.play('fire');
-    yield D.tween(0.6, function (k) { w.x = U.lerp(x0, (g.x0 + g.x1) / 2, k); w.y = U.lerp(y0, D.gy - 40 * s, k); });
-    pop(D, 'sfx_shuwa', w.x, w.y - 50 * s, COL.chalk, 20);
-    D.sfx.play('swirl');
-    yield D.tween(2.0, function (k) {
-      sc.water = 1 - k;
-      if (Math.random() < 0.5) D.fx.add({ type: 'steam', x: U.lerp(g.x0 + 20 * s, g.x1 - 20 * s, Math.random()), y: D.gy + 10 * s, vy: -40, life: 1.0, size: 2.4 * s, color: COL.chalk });
-    });
-    w.tint = null;
-    yield D.tween(0.4, function (k) { w.alpha = 1 - k; });
-    yield* walkRiverbed(D);
   };
 
   // 地下10問目：乗り物で、岩が落ちる前にかけぬける（乗り物）
