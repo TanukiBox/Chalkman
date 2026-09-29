@@ -29,17 +29,40 @@
   // ------------------------------------------------------------
   // 演出を動かす係（D）
   // ------------------------------------------------------------
-  function makeDirector(app, sceneId) {
+  function makeDirector(app, sceneId, stageFx) {
     var L = app.L;
     var D = {
       app: app, st: L.stage, gy: L.groundY, s: L.s, dpr: app.dpr,
       T: function (k, p) { return app.i18n.t(k, p); }, lang: app.i18n.lang,
-      fx: app.fx, sfx: app.sfx, time: 0,
+      fx: stageFx || app.fx, sfx: app.sfx, time: 0,
+      // カメラ：ステージのまん中に映す場所 (cx, cy) と、大きさ z（1＝そのまま、0.5＝半分に引いた画）
+      cam: { cx: L.stage.x + L.stage.w / 2, cy: L.stage.y + L.stage.h / 2, z: 1 },
+      view: { x: L.stage.x, y: L.stage.y, w: L.stage.w, h: L.stage.h },
       sceneId: sceneId, sc: {}, actors: [], copies: [], w: null,
       held: null, heldRot: 0, heldFade: 1, tossY: 0, wordVisible: true,
       follows: [], chalkHooks: [], realHooks: [], eraser: null, thread: null, kind: null
     };
 
+    /** カメラが今映している範囲（黒板の中の座標） */
+    D.updateView = function () {
+      var c = D.cam, st = D.st;
+      D.view = { x: c.cx - st.w / 2 / c.z, y: c.cy - st.h / 2 / c.z, w: st.w / c.z, h: st.h / c.z };
+    };
+    /** 黒板の中の座標 → 画面の座標 */
+    D.toScreen = function (x, y) {
+      var c = D.cam, st = D.st;
+      return { x: st.x + st.w / 2 + (x - c.cx) * c.z, y: st.y + st.h / 2 + (y - c.cy) * c.z };
+    };
+    /** カメラを動かす（sec 秒かけて） */
+    D.camTo = function (to, sec) {
+      var from = { cx: D.cam.cx, cy: D.cam.cy, z: D.cam.z };
+      return D.tween(sec, function (k) {
+        var e = U.easeInOut(k);
+        D.cam.cx = U.lerp(from.cx, to.cx, e); D.cam.cy = U.lerp(from.cy, to.cy, e);
+        D.cam.z = Math.exp(U.lerp(Math.log(from.z), Math.log(to.z), e));
+        D.updateView();
+      });
+    };
     D.tween = function (sec, fn, ease) {
       var t = 0;
       fn(0);
@@ -151,6 +174,9 @@
     var padEl = document.getElementById('pad'), hudEl = document.getElementById('hud');
     var meter = app.chalk;
     var run = null;          // 1回の冒険の記録
+    // ステージの中の粉や音の文字（カメラといっしょに動く）
+    var stageFx = CM.createFx();
+    stageFx.shake = function (a, d) { app.fx.shake(a, d); };
     var P = {
       state: 'title', D: null, sceneId: 'title', prob: null,
       word: null, writer: null, phase: 'none', phaseT: 0, fly: null,
@@ -162,11 +188,20 @@
     function chapterProblems(ch) { return CM.PROBLEMS.filter(function (p) { return p.chapter === ch; }); }
 
     // ---- シーン ----
-    function setScene(sceneId, prob) {
+    /**
+     * 場面を作る
+     *   opts.walkIn：棒人間が左から歩いて入ってくる
+     *   opts.retry ：やり直し（はじめの見せ方＝カメラの寄り・引き は省く）
+     */
+    function setScene(sceneId, prob, opts) {
+      opts = opts || {};
       P.sceneId = sceneId; P.prob = prob || null;
-      var D = makeDirector(app, sceneId);
+      stageFx.clear();
+      var D = makeDirector(app, sceneId, stageFx);
       var S = CM.SCENES[sceneId];
       S.setup(D.sc, D);
+      if (D.sc.camIn) { var ci = opts.retry && D.sc.camOut ? D.sc.camOut : D.sc.camIn; D.cam = { cx: ci.cx, cy: ci.cy, z: ci.z }; }
+      D.updateView();
       // シーンによっては、棒人間の立つ高さ（地面）が違う（1問目の高い所など）
       if (D.sc.gy !== undefined) D.gy = D.sc.gy;
       if (D.sc.floorY === undefined) D.sc.floorY = D.gy;
@@ -175,6 +210,17 @@
       D.man.play(D.sc.manAnim || 'idle');
       P.D = D;
       P.word = null; P.phase = 'none'; P.stamp = null;
+      // はじめの見せ方：左から歩いて入る → （シーンによっては）カメラを引いて全体を見せる
+      var walkIn = !!opts.walkIn, intro = !opts.retry && S.intro;
+      P.introLock = walkIn || !!intro;
+      if (P.introLock) {
+        var tx = D.man.x, anim = D.sc.manAnim || 'idle';
+        if (walkIn) D.man.x = D.view.x - 40 * D.s;
+        D.intro = { it: (function* () {
+          if (walkIn) { yield 0.7; yield D.walkTo(tx, { anim: 'walk' }); D.man.play(anim); }
+          if (intro) yield* S.intro(D.sc, D);
+        })(), wait: 0, done: false };
+      }
     }
     /**
      * 場面の切りかえ
@@ -184,11 +230,8 @@
     function transitionTo(type, then) {
       if (type === 'scroll' && P.D) {
         var old = { D: P.D, sceneId: P.sceneId };
-        then();
+        then(true);
         P.trans = { type: 'scroll', t: 0, dur: 1.1, old: old };
-        var D = P.D, tx = D.man.x, anim = D.sc.manAnim || 'idle';
-        D.man.x = D.st.x - 40 * D.s;
-        D.intro = { it: (function* () { yield 0.7; yield D.walkTo(tx, { anim: 'walk' }); D.man.play(anim); })(), wait: 0, done: false };
       } else {
         P.trans = { type: 'fade', t: 0, dur: 0.3, then: then, done: false };
       }
@@ -209,15 +252,15 @@
     function goProblem(i, how) {
       var list = chapterProblems(run.chapter);
       run.q = i;
-      transitionTo(how || 'scroll', function () {
-        setScene(list[i].scene, list[i]);
+      transitionTo(how || 'scroll', function (scrolling) {
+        setScene(list[i].scene, list[i], { walkIn: !!scrolling });
         P.state = 'input'; P.msg = ''; P.result = null;
         buildPad();
       });
     }
     function retry() {
       transitionTo('fade', function () {
-        setScene(P.prob.scene, P.prob);
+        setScene(P.prob.scene, P.prob, { retry: true });
         P.state = 'input'; P.result = null;
         buildPad();
       });
@@ -307,8 +350,9 @@
           app.sfx.play('crumble');
           D.man.play('puzzled');
         } else {
-          var sc = stageScale(w);
-          P.fly = { x0: w.x, y0: w.y, s0: w.scale, s1: sc, x1: D.sc.restX, y1: D.gy - w.height * sc / 2 - 2 };
+          // 着く場所は黒板の中の座標。飛んでいる間は画面の座標で動かす（カメラの寄り・引きに合わせる）
+          var sc = stageScale(w), wy = D.gy - w.height * sc / 2 - 2, scr = D.toScreen(D.sc.restX, wy);
+          P.fly = { x0: w.x, y0: w.y, s0: w.scale, s1: sc * D.cam.z, x1: scr.x, y1: scr.y, wx: D.sc.restX, wy: wy, ws: sc };
           app.sfx.play('lift');
           app.fx.dust(w.x, w.y + w.dispH() * 0.3, 14, { w: w.dispW(), speed: 30, g: 200, life: 0.8 });
           P.phase = 'lift'; P.phaseT = 0;
@@ -346,6 +390,8 @@
     function startAct() {
       var D = P.D, r = P.result;
       D.w = P.word;
+      // 画面の座標 → 黒板の中の座標へ
+      D.w.x = P.fly.wx; D.w.y = P.fly.wy; D.w.scale = P.fly.ws;
       D.kind = r.kind;
       P.phase = 'act';
       P.failAfterDone = false;
@@ -486,7 +532,7 @@
           else padEl.appendChild(btn(T('retryBtn'), 'big', function () { app.sfx.play('ui'); retry(); }));
         } else {
           padEl.appendChild(el('p', 'prompt', P.prob.text[app.i18n.lang]));
-          addWriteRow(P.busy || st === 'dying');
+          addWriteRow(P.busy || P.introLock || st === 'dying');
           if (P.msg) padEl.appendChild(el('p', 'rmsg k-' + P.msgKind, P.msg));
         }
       } else if (st === 'clear') {
@@ -523,7 +569,7 @@
       },
       relayout: function () {
         // 入力を待っている間なら、新しい大きさで黒板を並べ直す
-        if (P.D && (P.state === 'input' || P.state === 'title' || P.state === 'prologue') && !P.busy && !P.trans) setScene(P.sceneId, P.prob);
+        if (P.D && (P.state === 'input' || P.state === 'title' || P.state === 'prologue') && !P.busy && !P.trans) setScene(P.sceneId, P.prob, { retry: true });
       },
       update: function (dt) {
         P.time += dt;
@@ -544,12 +590,17 @@
           if (prev < 0.2 && P.ngT >= 0.2) { var sr0 = slateRect(); app.fx.dust(sr0.x + sr0.w / 2, sr0.y + sr0.h / 2, 16, { w: sr0.w * 0.8, h: sr0.h * 0.5, speed: 30, g: 150, life: 0.9 }); }
           if (P.ngT > 3) P.ngT = -1;
         }
+        stageFx.update(dt);
         if (!D) return;
         D.time += dt;
+        D.updateView();
         var S = CM.SCENES[P.sceneId];
         if (S.update) S.update(D.sc, dt, D);
         updateWriting(dt);
-        if (D.intro) { stepThread(D.intro, dt); if (D.intro.done) D.intro = null; }
+        if (D.intro) {
+          stepThread(D.intro, dt);
+          if (D.intro.done) { D.intro = null; if (P.introLock) { P.introLock = false; if (P.state === 'input') buildPad(); } }
+        }
         // プロローグ：落書きの棒人間が、すーっと浮かび上がる
         if (P.state === 'prologue' && D.man.alpha < 1) D.man.alpha = Math.min(1, D.man.alpha + dt * 0.7);
         if (P.phase === 'act' && D.thread) {
@@ -636,7 +687,22 @@
     };
 
     /** ステージのチョークで描く物（シーン・文字・棒人間） */
+    /** カメラの寄り・引きを、描く前にかける */
+    function applyCam(ctx, D) {
+      var c = D.cam, st = D.st;
+      if (c.z === 1 && c.cx === st.x + st.w / 2 && c.cy === st.y + st.h / 2) return;
+      ctx.translate(st.x + st.w / 2, st.y + st.h / 2);
+      ctx.scale(c.z, c.z);
+      ctx.translate(-c.cx, -c.cy);
+    }
     function stageChalk(ctx, D, sceneId) {
+      ctx.save();
+      applyCam(ctx, D);
+      stageChalkInner(ctx, D, sceneId);
+      if (D === P.D) stageFx.draw(ctx);
+      ctx.restore();
+    }
+    function stageChalkInner(ctx, D, sceneId) {
       var S = CM.SCENES[sceneId], st = D.st;
       if (S.drawChalk) S.drawChalk(ctx, D.sc, D);
       D.chalkHooks.forEach(function (h) { h(ctx, D.time); });
@@ -663,6 +729,12 @@
 
     /** ステージの上に重ねる物（暗やみ・黒板消し など） */
     function stageReal(ctx, D, sceneId) {
+      ctx.save();
+      applyCam(ctx, D);
+      stageRealInner(ctx, D, sceneId);
+      ctx.restore();
+    }
+    function stageRealInner(ctx, D, sceneId) {
       var S = CM.SCENES[sceneId], L = app.L;
       if (S.drawReal) S.drawReal(ctx, D.sc, D);
       D.realHooks.forEach(function (h) { h(ctx, D.time); });

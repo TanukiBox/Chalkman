@@ -12,7 +12,8 @@ const path = require('path');
 const CM = require('./load-judge')();
 const root = path.join(__dirname, '..');
 const acts = new Set([...fs.readFileSync(path.join(root, 'js/game/acts.js'), 'utf8').matchAll(/\bA\.(\w+)\s*=/g)].map(m => m[1]));
-const scenes = new Set([...fs.readFileSync(path.join(root, 'js/game/scenes.js'), 'utf8').matchAll(/^    (\w+): \{$/gm)].map(m => m[1]));
+const scenesSrc = fs.readFileSync(path.join(root, 'js/game/scenes.js'), 'utf8');
+const scenes = new Set([...scenesSrc.matchAll(/^    (\w+): \{$/gm), ...scenesSrc.matchAll(/^  SC\.(\w+) = \{$/gm)].map(m => m[1]));
 let bad = 0;
 function ng(msg) { bad++; console.log('  ✗ ' + msg); }
 

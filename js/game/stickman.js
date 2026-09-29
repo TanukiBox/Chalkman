@@ -484,6 +484,19 @@
       return { pose: plant(p, env.s, env.groundY) };
     }
   };
+  // しがみつく（はしごやロープにつかまって、上り下りする途中。位置は演出の側で動かす）
+  CM.MAN_ANIMS.cling = {
+    loop: 0.8,
+    frame: function (t, env) {
+      var s = env.s, u = t / 0.8 * TAU;
+      var p = { x: env.cx, y: env.groundY - HIP_H * s, f: 1, lean: 0.05, tilt: -0.1,
+        aF: [2.5 + 0.35 * Math.sin(u), 0.35], aB: [2.5 - 0.35 * Math.sin(u), 0.35],
+        lF: [0.5 + 0.35 * Math.max(0, Math.sin(u)), -0.9 - 0.5 * Math.max(0, Math.sin(u))],
+        lB: [0.5 + 0.35 * Math.max(0, -Math.sin(u)), -0.9 - 0.5 * Math.max(0, -Math.sin(u))],
+        mouth: 'flat', eyes: 'dot', alpha: 1 };
+      return { pose: p };
+    }
+  };
   // 掘る：シャベルのように、前でザクザク
   CM.MAN_ANIMS.dig = {
     loop: 0.7,

@@ -22,9 +22,11 @@
   /** 文字の上のはしの高さ */
   function topOf(w) { return w.y - w.dispH() / 2; }
   /** ステージの右の外（退場する場所） */
-  function exitX(D) { return D.st.x + D.st.w + 60 * D.s; }
+  function exitX(D) { var v = D.view || D.st; return v.x + v.w + 60 * D.s; }
   function pop(D, key, x, y, color, size) {
-    D.fx.word(D.T(key), x, y, { size: (size || 20) * D.s + 6, color: color || COL.chalk });
+    // カメラを引いているときは、文字を大きめに（小さくなりすぎないように）
+    var k = D.cam ? Math.pow(1 / D.cam.z, 0.85) : 1;
+    D.fx.word(D.T(key), x, y, { size: ((size || 20) * D.s + 6) * k, color: color || COL.chalk });
   }
   /** 棒人間が文字に歩いていって、手に取る */
   function* pickUp(D, mode) {
@@ -175,7 +177,7 @@
   // ピカッと光って、道が見える（光る）
   A.light = function* (D) {
     var w = D.w, s = D.s, sc = D.sc;
-    var x0 = w.x, y0 = w.y, ty = D.gy - D.st.h * 0.42;
+    var x0 = w.x, y0 = w.y, ty = D.gy - D.st.h * 0.28;
     var L = { x: w.x, y: w.y, r: 20 * s, color: 'rgba(255,230,140,A)' };
     sc.lights && sc.lights.push(L);
     w.tint = COL.yellow;
@@ -370,7 +372,7 @@
 
   // かわいさでメロメロ（イヌ）
   A.charm = function* (D) {
-    var w = D.w, s = D.s, dog = D.sc.dog, x0 = w.x, tx = dog.x - dog.w.dispW() / 2 - w.dispW() / 2 - 20 * s;
+    var w = D.w, s = D.s, dog = D.sc.dog, x0 = w.x, tx = dog.x - dog.hw - w.dispW() / 2 - 20 * s;
     yield D.tween(1.0, function (k) { w.x = U.lerp(x0, tx, k); onGround(D, w); w.y -= Math.abs(Math.sin(k * PI * 4)) * 10 * s; });
     dog.mode = 'happy'; dog.t = 0;
     D.sfx.play('cute');
@@ -405,9 +407,9 @@
   A.feed = function* (D) {
     var w = D.w, s = D.s, m = D.man, dog = D.sc.dog;
     yield* pickUp(D, 'front');
-    yield* throwTo(D, dog.x - dog.w.dispW() / 2 - 10 * s, 60 * s);
+    yield* throwTo(D, dog.x - dog.hw - 10 * s, 60 * s);
     dog.mode = 'eat';
-    var dx = dog.x, tx = w.x + dog.w.dispW() / 2 + 6 * s;
+    var dx = dog.x, tx = w.x + dog.hw + 6 * s;
     yield D.tween(0.4, function (k) { dog.x = U.lerp(dx, tx, k); });
     pop(D, 'sfx_munch', dog.x, D.gy - 80 * s, COL.orange, 16);
     var eat = D.follow(function () { if (Math.random() < 0.05) { D.sfx.play('munch'); if (w.bites.length < 3) w.bites.push({ x: w.width / 2 - w.bites.length * 30, y: 0, r: 26 }); } });
@@ -1189,6 +1191,259 @@
     m.mouth = null;
     sc.shield = null;
     yield* flowAway(D);
+  };
+
+  // ============================================================
+  //  1問目（新）：高いビルの屋上から、下の地面まで降りる（カメラは引いた画）
+  // ============================================================
+  /** 屋上のはしまで歩いて、えいっと飛び出す */
+  function* jumpOff(D) {
+    var m = D.man, s = D.s, sc = D.sc;
+    yield D.walkTo(sc.edgeX - 8 * s, { anim: 'walk' });
+    yield D.hop(m, sc.edgeX + 26 * s, sc.gy, 26 * s, 0.4);
+  }
+  /** 長い距離を落ちる（落ちる時間は高さに合わせる） */
+  function longFall(D, x1, gy1) {
+    var h = gy1 - D.man.gy;
+    return fallTo(D, D.man, x1, gy1, U.clamp(Math.sqrt(Math.max(1, h)) / 30, 0.5, 1.2));
+  }
+
+  // 長い文字を屋上からたらして、つたって降りる（長い）
+  A.climbDown = function* (D) {
+    var w = D.w, m = D.man, s = D.s, sc = D.sc;
+    var len = sc.floorY - sc.gy, baseW = w.width * w.scale;
+    var x0 = w.x, y0 = w.y, rx = sc.edgeX + 8 * s;
+    // 屋上のはしへ移動して、下へ向けてのびる
+    yield D.tween(0.5, function (k) { w.x = U.lerp(x0, rx, k); w.y = U.lerp(y0, sc.gy + baseW / 2, k); w.rot = PI / 2 * k; });
+    D.sfx.play('stretch');
+    pop(D, 'sfx_stretch', rx + 60 * s, sc.gy + 80 * s, COL.chalk, 22);
+    yield D.tween(1.0, function (k) { w.sx = U.lerp(1, len / baseW, U.easeOut(k)); w.y = sc.gy + baseW * w.sx / 2; });
+    yield D.walkTo(sc.edgeX - 6 * s, { anim: 'walk' });
+    // つかまって、するする降りる
+    m.f = -1; m.x = rx + 12 * s; m.play('cling');
+    D.sfx.play('climb');
+    var g0 = sc.gy + 40 * s;
+    yield D.tween(2.2, function (k) { m.gy = U.lerp(g0, sc.floorY, U.easeInOut(k)); });
+    m.f = 1; m.play('idle');
+    m_cheer(D);
+    yield 0.6;
+    yield* walkOff(D);
+  };
+
+  // 飛び出したところを、空中でキャッチ（飛ぶ）
+  A.catchFall = function* (D) {
+    var w = D.w, m = D.man, s = D.s, sc = D.sc;
+    yield* jumpOff(D);
+    var midX = sc.edgeX + 70 * s, midGy = sc.gy + (sc.floorY - sc.gy) * 0.45, x0 = w.x, y0 = w.y;
+    D.sfx.play('fly');
+    pop(D, 'eek', m.x, m.gy - 110 * s, COL.chalk, 18);
+    yield D.all([
+      longFall(D, midX, midGy),
+      D.tween(0.8, function (k) { w.x = U.lerp(x0, midX + 4 * s, k); w.y = U.lerp(y0, midGy + w.dispH() / 2 - 2, U.easeInOut(k)); })
+    ]);
+    m.play('ride');
+    D.follow(function () { m.x = w.x - 4 * s; m.gy = topOf(w) + 1; });
+    pop(D, 'sfx_fuwa', w.x, topOf(w) - 70 * s, COL.chalk, 18);
+    var wx = w.x, wy = w.y;
+    yield D.tween(1.8, function (k) {
+      w.x = U.lerp(wx, sc.landX, k);
+      w.y = U.lerp(wy, sc.floorY - w.dispH() / 2 - 2, U.easeInOut(k)) + Math.sin(k * 10) * 4 * s;
+      w.rot = Math.sin(k * 8) * 0.05;
+    });
+    w.rot = 0;
+    D.clearFollow();
+    yield D.hop(m, sc.landX + w.dispW() / 2 + 24 * s, sc.floorY, 18 * s, 0.4);
+    m_cheer(D);
+    yield 0.6;
+    yield* walkOff(D);
+  };
+
+  // 下にクッション。飛びおりて、ぽよん（柔らかい）
+  A.cushionFall = function* (D) {
+    var w = D.w, m = D.man, s = D.s, sc = D.sc;
+    yield wordToLanding(D, 0.9);
+    D.sfx.play('land');
+    yield* jumpOff(D);
+    yield longFall(D, sc.landX, topOf(w) + 2);
+    D.sfx.play('boing');
+    D.fx.shake(4, 0.3);
+    pop(D, 'sfx_boing', w.x, topOf(w) - 80 * s, COL.pink, 22);
+    m.play('hopAir');
+    yield D.tween(0.8, function (k) {
+      var d = Math.exp(-k * 5) * Math.cos(k * 18);
+      w.sy = 1 - 0.4 * d; w.sx = 1 + 0.3 * d; onGround(D, w, sc.floorY);
+      m.gy = topOf(w) + 2; m.dy = -Math.sin(Math.min(1, k * 1.6) * PI) * 40 * s;
+    });
+    m.dy = 0; w.sx = w.sy = 1;
+    m_cheer(D);
+    yield 0.7;
+    yield D.hop(m, sc.landX + w.dispW() / 2 + 26 * s, sc.floorY, 22 * s, 0.45);
+    yield* walkOff(D);
+  };
+
+  // 大きな文字の上に飛びおりて、小さくなりながら降ろしてもらう（大きい）
+  A.elevator = function* (D) {
+    var w = D.w, m = D.man, s = D.s, sc = D.sc, s0 = w.scale;
+    yield wordToLanding(D, 0.9);
+    var big = Math.min((sc.floorY - sc.gy) * 0.75 / w.height, (D.view.w * 0.42) / w.width);
+    D.sfx.play('grow');
+    D.fx.shake(5, 0.5);
+    pop(D, 'sfx_zoom', sc.landX, sc.floorY - 60 * s, COL.chalk, 24);
+    yield D.tween(0.8, function (k) { w.scale = U.lerp(s0, big, U.easeBack(k)); onGround(D, w, sc.floorY); });
+    yield* jumpOff(D);
+    yield longFall(D, w.x, topOf(w) + 1);
+    D.sfx.play('thud');
+    D.follow(function () { m.x = w.x; m.gy = topOf(w) + 1; });
+    D.sfx.play('stretch');
+    pop(D, 'sfx_shururu', w.x + w.dispW() / 2, topOf(w) - 30 * s, COL.chalk, 20);
+    yield D.tween(1.6, function (k) { w.scale = U.lerp(big, s0, U.easeInOut(k)); onGround(D, w, sc.floorY); });
+    D.clearFollow();
+    yield D.hop(m, sc.landX + w.dispW() / 2 + 26 * s, sc.floorY, 18 * s, 0.4);
+    m_cheer(D);
+    yield 0.6;
+    yield* walkOff(D);
+  };
+
+  // 下の食べ物に、頭からずぼっ（食べられる・珍回答）
+  A.plungeFall = function* (D) {
+    var w = D.w, m = D.man, s = D.s, sc = D.sc;
+    yield wordToLanding(D, 0.9);
+    D.sfx.play('land');
+    yield* jumpOff(D);
+    yield longFall(D, sc.landX, topOf(w) + 24 * s);
+    D.sfx.play('poof');
+    pop(D, 'sfx_zubo', w.x, topOf(w) - 40 * s, COL.chalk, 24);
+    yield D.tween(0.3, function (k) { w.sy = 1 - 0.3 * k; w.sx = 1 + 0.2 * k; onGround(D, w, sc.floorY); m.alpha = 1 - 0.8 * k; });
+    yield 0.8;
+    w.bites.push({ x: 0, y: -18, r: 26 });
+    D.sfx.play('munch');
+    for (var i = 0; i < 6; i++) D.fx.add({ type: 'crumb', x: w.x, y: topOf(w), vx: (Math.random() - 0.5) * 120, vy: -120, g: 500, life: 0.7, size: 2.5 * s + 1, vr: 8 });
+    w.sx = w.sy = 1; onGround(D, w, sc.floorY);
+    m.alpha = 1;
+    pop(D, 'sfx_puha', w.x + 20 * s, topOf(w) - 70 * s, COL.yellow, 22);
+    yield D.hop(m, sc.landX + w.dispW() / 2 + 26 * s, sc.floorY, 30 * s, 0.5);
+    m.mouth = 'smile'; m_cheer(D);
+    yield 0.8;
+    m.mouth = null;
+    yield* walkOff(D);
+  };
+
+  // 失敗したあと：足をすべらせて、下までまっさかさま
+  A.tumble = function* (D) {
+    var m = D.man, s = D.s, sc = D.sc;
+    if (m.gy >= sc.floorY - 1) return;
+    yield D.walkTo(sc.edgeX - 4 * s, { anim: 'walk' });
+    m.play('flail');
+    pop(D, 'eek', m.x, m.gy - 110 * s, COL.chalk, 18);
+    yield D.hop(m, sc.edgeX + 16 * s, sc.gy, 14 * s, 0.3);
+    yield longFall(D, sc.edgeX + 40 * s, sc.floorY);
+    D.sfx.play('thud');
+    D.fx.shake(10, 0.4);
+    D.fx.dust(m.x, sc.floorY, 16, { angle: -PI / 2, spread: 2.4, speed: 120, g: 200, size: 3 });
+    pop(D, 'sfx_dote', m.x, sc.floorY - 100 * s, COL.chalk, 26);
+    m.play('puzzled');
+    yield 0.7;
+  };
+
+  // ============================================================
+  //  6問目（新）：大きな木の落書き。上（空ルート）か、下（地下ルート）か
+  // ============================================================
+
+  // 長い文字を幹に立てかけて、雲の上までのぼる（長い → 空）
+  A.climbUp = function* (D) {
+    var w = D.w, m = D.man, s = D.s, tr = D.sc.tree;
+    var topY = D.st.y - 60 * s, len = D.gy - topY, baseW = w.width * w.scale;
+    var lx = tr.x - tr.w / 2 - 12 * s, x0 = w.x, y0 = w.y;
+    yield D.tween(0.5, function (k) { w.x = U.lerp(x0, lx, k); w.y = U.lerp(y0, D.gy - baseW / 2, k); w.rot = -PI / 2 * k; });
+    D.sfx.play('stretch');
+    pop(D, 'sfx_stretch', lx - 50 * s, D.gy - 120 * s, COL.chalk, 22);
+    yield D.tween(1.0, function (k) { w.sx = U.lerp(1, len / baseW, U.easeOut(k)); w.y = D.gy - baseW * w.sx / 2; });
+    yield D.walkTo(lx - 14 * s, { anim: 'walk' });
+    m.f = 1; m.play('cling');
+    D.sfx.play('climb');
+    pop(D, 'toSky', lx - 40 * s, D.gy - 160 * s, COL.yellow, 20);
+    var g0 = m.gy;
+    yield D.tween(2.6, function (k) { m.gy = U.lerp(g0, topY - 60 * s, U.easeIn(k)); });
+  };
+
+  // 文字に乗って、雲の上まで飛んでいく（飛ぶ → 空）
+  A.flyUp = function* (D) {
+    var w = D.w, m = D.man, s = D.s, tr = D.sc.tree;
+    D.sfx.play('fly');
+    yield D.tween(0.5, function (k) { w.x = U.lerp(D.sc.restX, m.x + 30 * s, k); onGround(D, w, D.gy - 6 * s * k); });
+    yield* mount(D);
+    var x0 = w.x, y0 = w.y;
+    pop(D, 'toSky', m.x, D.gy - 120 * s, COL.yellow, 20);
+    yield D.tween(2.4, function (k) {
+      w.x = U.lerp(x0, tr.x - tr.w * 1.4, U.easeInOut(k));
+      w.y = U.lerp(y0, D.st.y - 140 * s, U.easeIn(k)) + Math.sin(k * 10) * 3 * s;
+      w.rot = Math.sin(k * 8) * 0.06;
+    });
+  };
+
+  /** 根っこのすき間から、坂を下って地下へ（落ちずに、歩いて下りる） */
+  function* walkDownRoots(D) {
+    var m = D.man, s = D.s, tr = D.sc.tree, gx = tr.x - tr.w * 0.9;
+    yield D.walkTo(gx - 16 * s, { anim: 'walk' });
+    pop(D, 'toUnder', gx, D.gy - 110 * s, COL.yellow, 20);
+    m.f = 1; m.play('walk');
+    var x0 = m.x, g0 = m.gy;
+    yield D.tween(1.6, function (k) { m.x = x0 + 40 * s * k; m.gy = g0 + 70 * s * k; m.alpha = 1 - Math.max(0, k - 0.6) / 0.4; });
+  }
+
+  // かたい文字でザクザク掘って、根っこの間の道を作る（硬い → 地下）
+  A.digDown = function* (D) {
+    var w = D.w, m = D.man, s = D.s, tr = D.sc.tree, gx = tr.x - tr.w * 0.9;
+    yield* pickUp(D, 'dig');
+    yield D.walkTo(gx - 30 * s, { anim: 'walk' });
+    m.play('dig');
+    pop(D, 'sfx_zaku', gx, D.gy - 60 * s, COL.chalk, 20);
+    for (var i = 0; i < 4; i++) {
+      D.sfx.play('dig');
+      D.fx.dust(gx, D.gy, 8, { angle: -PI / 2 - 0.6, spread: 1, speed: 120, g: 400, size: 2.4, color: '#d9c7a8' });
+      tr.gap = (i + 1) / 4;
+      yield 0.4;
+    }
+    m.play('idle');
+    D.held = null; D.wordVisible = false;
+    yield* walkDownRoots(D);
+  };
+
+  // 小さな文字が、根っこのすき間を見つける（小さい → 地下）
+  A.shrinkIn = function* (D) {
+    var w = D.w, s = D.s, tr = D.sc.tree, gx = tr.x - tr.w * 0.9, x0 = w.x;
+    yield D.tween(0.9, function (k) { w.x = U.lerp(x0, gx, k); onGround(D, w); w.y -= Math.abs(Math.sin(k * PI * 4)) * 8 * s; });
+    D.sfx.play('tiny');
+    pop(D, 'foundGap', gx, D.gy - 50 * s, COL.chalk, 16);
+    yield D.tween(0.5, function (k) { tr.gap = k; });
+    var wx = w.x, wy = w.y;
+    yield D.tween(0.8, function (k) { w.x = wx + 30 * s * k; w.y = wy + 50 * s * k; w.alpha = 1 - k; });
+    yield* walkDownRoots(D);
+  };
+
+  // 虫の大群が根っこをかじって、地下への道をあける（虫・珍回答 → 地下）
+  A.antsDig = function* (D) {
+    var w = D.w, s = D.s, tr = D.sc.tree, gx = tr.x - tr.w * 0.9;
+    var small = w.scale * 0.5, ants = [w];
+    yield D.tween(0.3, function (k) { w.scale = U.lerp(small * 2, small, k); onGround(D, w); });
+    for (var i = 1; i < 12; i++) { var c = D.copy(); c.scale = small; ants.push(c); }
+    pop(D, 'sfx_warawara', D.st.x + D.st.w * 0.3, D.gy - 80 * s, COL.chalk, 22);
+    var t = 0, starts = ants.map(function (a, i) { return i === 0 ? w.x : D.st.x - 20 * s - i * 30 * s; });
+    D.follow(function (dt) {
+      t += dt;
+      ants.forEach(function (a, i) {
+        var tt = Math.max(0, t - i * 0.1), x = Math.min(gx + (i % 4 - 1.5) * 10 * s, starts[i] + 150 * s * tt);
+        a.x = x; onGround(D, a); a.y -= Math.abs(Math.sin(tt * 16 + i)) * 4 * s; a.rot = Math.sin(tt * 16 + i) * 0.1;
+      });
+      if (Math.random() < 0.3) D.sfx.play('patter');
+    });
+    yield 2.2;
+    pop(D, 'sfx_kari', gx, D.gy - 50 * s, COL.chalk, 18);
+    D.sfx.play('munch');
+    yield D.tween(0.8, function (k) { tr.gap = k; });
+    D.clearFollow();
+    yield D.tween(0.6, function (k) { ants.forEach(function (a) { a.y += 2; a.alpha = 1 - k; }); });
+    yield* walkDownRoots(D);
   };
 
   /** 喜ぶ（その場でばんざい） */
