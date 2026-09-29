@@ -11,7 +11,9 @@
     CHALK_MAX: 100,
     CHALK_START: 100,
     CHALK_FAIL: -20,          // 失敗したとき
-    CHALK_CLEAR: 20,          // 章をクリアしたとき
+    CHALK_CLEAR: 20,
+    ENDING_CHALK: 60,       // エンディングで「チョークが多い」となる残り（これ以上）
+    ENDING_FUNNY: 10,       // 隠しエンドになる珍回答の回数（これ以上）
 
     // ---- 入力 ----
     WORD_MAX: 12,             // 書ける文字数

@@ -215,6 +215,7 @@
       P.sceneId = sceneId; P.prob = prob || null;
       stageFx.clear();
       var D = makeDirector(app, sceneId, stageFx);
+      D.run = run;   // 通ってきたルートで、見た目を変える場面がある（第3章）
       var S = CM.SCENES[sceneId];
       S.setup(D.sc, D);
       if (D.sc.camIn) { var ci = opts.retry && D.sc.camOut ? D.sc.camOut : D.sc.camIn; D.cam = { cx: ci.cx, cy: ci.cy, z: ci.z }; }
@@ -255,7 +256,7 @@
 
     // ---- 冒険の流れ ----
     function newGame() {
-      run = { chapter: 1, q: 0, funny: 0, lastFunny: null, route: null, words: 0 };
+      run = { chapter: 1, q: 0, funny: 0, lastFunny: null, route: null, words: 0, funnyWords: [] };
       meter.set(CFG.CHALK_START);
       // プロローグ：理科の授業の図と、すみの落書きの棒人間
       transitionTo('fade', function () {
@@ -267,7 +268,7 @@
     }
     /** 確認用：章とルートを決めて、その章の1問目から始める */
     function startAt(ch, route) {
-      run = { chapter: ch, q: 0, funny: 0, lastFunny: null, route: route, words: 0 };
+      run = { chapter: ch, q: 0, funny: 0, lastFunny: null, route: route, words: 0, funnyWords: [] };
       meter.set(CFG.CHALK_START);
       goProblem(0, 'scroll');
     }
@@ -289,8 +290,33 @@
     }
     function nextProblem() {
       var list = chapterProblems(run.chapter);
-      if (run.q + 1 < list.length) goProblem(run.q + 1);
+      if (P.prob && P.prob.last) goEnding();
+      else if (run.q + 1 < list.length) goProblem(run.q + 1);
       else chapterClear();
+    }
+    /**
+     * エンディングを決める（上が優先）
+     *   8：黒板消し（チョーク0。ここには来ない）→ 7：珍回答10回以上 → 5・6：気持ち → 1〜4：ルート
+     *   5・6 と 1〜4 は、チョークが 60 以上かどうかで分かれる
+     */
+    function decideEnding() {
+      var hi = meter.value >= CFG.ENDING_CHALK;
+      if (run.funny >= CFG.ENDING_FUNNY) return 7;
+      if (run.ending === 'feel') return hi ? 5 : 6;
+      if (run.route === 'under') return hi ? 3 : 4;
+      return hi ? 1 : 2;
+    }
+    function goEnding(n) {
+      n = n || decideEnding();
+      run.endingNo = n;
+      transitionTo('fade', function () {
+        setScene('ending', null);
+        var sc = P.D.sc;
+        sc.no = n; sc.word = run.lastWord || ''; sc.route = run.route || 'sky'; sc.funnyWords = run.funnyWords.slice();
+        sc.hi = meter.value >= CFG.ENDING_CHALK;
+        P.state = 'ending';
+        buildPad();
+      });
     }
     function chapterClear() {
       transitionTo('fade', function () {
@@ -443,8 +469,10 @@
         if (kind === 'funny') {
           run.funny++;
           run.lastFunny = { chapter: run.chapter, q: globalQ() + 1, word: r.text, text: CM.fillWord(r.reaction[app.i18n.lang], r.text) };
+          run.funnyWords.push(r.text);
         }
         if (r.route) run.route = r.route;
+        if (P.prob && P.prob.last) { run.ending = r.ending || null; run.lastWord = r.text; }
         P.stamp = { key: kind === 'success' ? 'stamp_success' : 'stamp_funny', color: kind === 'success' ? COL.green : COL.yellow, t: 0 };
         app.sfx.play(kind === 'success' ? 'cheer' : 'sparkle');
         P.state = 'result';
@@ -560,10 +588,11 @@
           var msg = CM.fillWord(r.reaction[app.i18n.lang], r.text);
           if (kind === 'fail' && P.prob.failAfter) msg += P.prob.failAfter[app.i18n.lang];
           padEl.appendChild(el('p', 'rmsg big', msg));
-          if (kind === 'success' || kind === 'funny') padEl.appendChild(btn(T('next'), 'big', function () { app.sfx.play('ui'); nextProblem(); }));
+          if (kind === 'success' || kind === 'funny') padEl.appendChild(btn(T(P.prob.last ? 'toEnding' : 'next'), 'big', function () { app.sfx.play('ui'); nextProblem(); }));
           else padEl.appendChild(btn(T('retryBtn'), 'big', function () { app.sfx.play('ui'); retry(); }));
         } else {
-          padEl.appendChild(el('p', 'prompt', P.prob.text[app.i18n.lang]));
+          var rt = P.prob.routeText && P.prob.routeText[run.route || 'sky'];
+          padEl.appendChild(el('p', 'prompt', P.prob.text[app.i18n.lang] + (rt ? ' ' + rt[app.i18n.lang] : '')));
           addWriteRow(P.busy || P.introLock || st === 'dying');
           if (P.msg) padEl.appendChild(el('p', 'rmsg k-' + P.msgKind, P.msg));
         }
@@ -574,6 +603,15 @@
         padEl.appendChild(el('p', 'note', T('funnyCount', { n: run.funny }) + (CM.CHAPTERS[run.chapter + 1] ? '' : '　' + T('toBeContinued'))));
         if (CM.CHAPTERS[run.chapter + 1]) padEl.appendChild(btn(T('nextChapter', { n: run.chapter + 1 }), 'big', function () { app.sfx.play('ui'); run.chapter++; goProblem(0, 'scroll'); }));
         else padEl.appendChild(btn(T('restart'), 'big', function () { app.sfx.play('ui'); newGame(); }));
+        padEl.appendChild(btn(T('toTitle'), 'small', function () { app.sfx.play('ui'); toTitle(); }));
+      } else if (st === 'ending') {
+        var E = CM.ENDINGS[run.endingNo], lang = app.i18n.lang, w = run.lastWord || '';
+        padEl.appendChild(el('p', 'rmain k-success', T('endingN', { n: run.endingNo }) + '　' + CM.fillWord(E.title[lang], w)));
+        var txt = E.text[lang];
+        if (E.routeText) txt = E.routeText[run.route || 'sky'][lang] + txt;
+        padEl.appendChild(el('p', 'rmsg big', CM.fillWord(txt, w)));
+        padEl.appendChild(el('p', 'note', T('funnyCount', { n: run.funny }) + '　' + T('chalkLeftN', { n: Math.round(meter.value) })));
+        padEl.appendChild(btn(T('playAgain'), 'big', function () { app.sfx.play('ui'); newGame(); }));
         padEl.appendChild(btn(T('toTitle'), 'small', function () { app.sfx.play('ui'); toTitle(); }));
       } else if (st === 'over') {
         padEl.appendChild(el('p', 'rmain k-fail', T('gameOver')));
@@ -595,13 +633,25 @@
         buildPad();
         // 確認用：URL に ?q=3 を付けると、その問題から始める
         //   第2章は ?q=7（空ルート）、?q=7&r=under（地下ルート）
+        // 確認用：?end=5（エンディング5を見る。&r=under で地下ルート、&w=ありがとう で最後の単語）
+        var me = /[?&]end=(\d)/.exec(global.location.search);
+        if (me && !run) {
+          var rr = /[?&]r=(sky|under)/.exec(global.location.search), ww = /[?&]w=([^&]+)/.exec(global.location.search);
+          run = { chapter: 3, q: 6, funny: 0, lastFunny: null, route: rr ? rr[1] : 'sky', words: 0, funnyWords: [] };
+          run.lastWord = ww ? decodeURIComponent(ww[1]) : 'ありがとう';
+          if (+me[1] === 7) run.funnyWords = ['アリ', 'すずめ', 'せんせい', 'たいこ', 'ねこ', 'おかあさん', 'ケーキ', 'よる', 'はな', 'くも'];
+          run.funny = run.funnyWords.length;
+          meter.set([2, 4, 6].indexOf(+me[1]) >= 0 ? 40 : 80);
+          goEnding(+me[1]);
+          return;
+        }
         var m = /[?&]q=(\d+)/.exec(global.location.search);
         if (m && !run) {
           var rm = /[?&]r=(sky|under)/.exec(global.location.search);
-          run = { chapter: 1, q: 0, funny: 0, lastFunny: null, route: rm ? rm[1] : null, words: 0 };
+          run = { chapter: 1, q: 0, funny: 0, lastFunny: null, route: rm ? rm[1] : null, words: 0, funnyWords: [] };
           meter.set(CFG.CHALK_START);
           var n = parseInt(m[1], 10) - 1;
-          while (run.chapter < 3 && CM.CHAPTERS[run.chapter + 1] && n >= chapterProblems(run.chapter).length) {
+          while (CM.CHAPTERS[run.chapter + 1] && n >= chapterProblems(run.chapter).length) {
             n -= chapterProblems(run.chapter).length; run.chapter++;
             if (!run.route) run.route = 'sky';
           }

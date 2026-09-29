@@ -111,7 +111,8 @@
       var nth = {};
       [['none', T('probNone')]].concat(CM.PROBLEMS.map(function (p) {
         var key = p.route || 'all'; nth[key] = (nth[key] || 0) + 1;
-        var n = nth[key] + (p.route ? CM.PROBLEMS.filter(function (q) { return q.chapter < p.chapter; }).length : 0);
+        // 第1章は 1〜6、第2章は 7〜13（ルートごと）、第3章は 14〜20
+        var n = nth[key] + (p.route ? CM.PROBLEMS.filter(function (q) { return q.chapter < p.chapter; }).length : 0) + (!p.route && p.chapter >= 3 ? 7 : 0);
         return [p.id, (p.route ? T(p.route === 'sky' ? 'routeSkyShort' : 'routeUnderShort') : 'Q') + n];
       })).forEach(function (d) {
         pr.appendChild(btn(d[1], 'small' + (S.prob === d[0] ? ' on' : ''), function () {

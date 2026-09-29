@@ -170,6 +170,7 @@
     if (rule.sub) return entry.sub === rule.sub;
     if (rule.cat) return entry.cat === rule.cat;
     if (rule.word) return String(rule.word).split('/').some(function (w) { return CM.lookupWord(w) === entry; });
+    if (rule.any) return true;
     return false;
   }
 
@@ -219,7 +220,7 @@
       //   first: true の条件も、タグより先に調べる（例：モグラには、音が出ても「かたい」ならたたく）
       var byWord = problem.rules.filter(function (x) { return x.word || x.first; });
       var byTag = problem.rules.filter(function (x) { return x.tag && !x.first; });
-      var byOther = problem.rules.filter(function (x) { return !x.tag && !x.word && !x.first; });
+      var byOther = problem.rules.filter(function (x) { return !x.tag && !x.word && !x.first; });   // any も、ここ（いちばん最後に書く）
       var steps = [[2, byWord], [2, byTag], [3, byOther]];
       for (var s = 0; s < steps.length; s++) {
         var list = steps[s][1];
@@ -230,6 +231,7 @@
             r.reaction = { ja: v.ja || rule.ja, en: v.en || rule.en, anim: v.anim || rule.anim };
             r.act = v.act || rule.act || null;
             r.route = rule.route || null;
+            r.ending = rule.ending || null;
             r.showTag = rule.tag || entry.tags[0] || null;
             r.chalk = rule.result === 'fail' ? CHALK_FAIL : 0;
             return r;

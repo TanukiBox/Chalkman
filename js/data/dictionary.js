@@ -873,7 +873,8 @@
       ['いと/糸', 'thread/yarn', '長い 小さい'],
       ['めがね/眼鏡', 'glasses/spectacles', '小さい'],
       ['かめら', 'camera', '光る 音が出る'],
-      ['たいまつ/松明', 'flaming torch', '熱い 光る 長い']
+      ['たいまつ/松明', 'flaming torch', '熱い 光る 長い'],
+      ['ぼんど/せっちゃくざい/接着剤', 'superglue/adhesive/bond', '']
     ],
     weapon: [
       ['おの/斧', 'axe/ax/hatchet', '危ない 硬い 重い'],
@@ -1061,7 +1062,11 @@
       ['だいじょうぶ/大丈夫', 'its okay/it is okay/no problem', ''],
       ['しんぱい/心配', 'worry/worried', ''],
       ['おもいで/思い出', 'memory/memories', ''],
-      ['ふしぎ/不思議', 'wonder/mysterious', '']
+      ['ふしぎ/不思議', 'wonder/mysterious', ''],
+      ['はなまる/花丸', 'gold star/excellent mark', 'かわいい'],
+      ['まる/丸/まるじるし/丸印', 'circle mark/check mark', ''],
+      ['ひゃくてん/百点/100点/まんてん/満点', 'perfect score/100 points/full marks', '光る'],
+      ['ごうかく/合格/せいかい/正解', 'correct answer/correct/right answer', '']
     ],
     magic: [
       ['まほう/魔法/まじっく', 'magic', '光る'],

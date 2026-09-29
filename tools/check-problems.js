@@ -32,13 +32,13 @@ CM.SPECIAL_WORDS.forEach(sp => { if (!acts.has(sp.act)) ng('特別な単語 ' + 
 CM.PROBLEMS.forEach((p, i) => {
   console.log((i + 1) + '. ' + p.title.ja + '（' + p.id + '）');
   const succ = p.rules.filter(r => r.result === 'success').length, fun = p.rules.filter(r => r.result === 'funny').length;
-  if (succ < 2 || succ > 6) ng('成功条件が ' + succ + ' 個（2〜6個にする）');
-  if (fun < 1 || fun > 2) ng('珍回答が ' + fun + ' 個（1〜2個にする）');
+  if (!p.last && (succ < 2 || succ > 6)) ng('成功条件が ' + succ + ' 個（2〜6個にする）');
+  if (!p.last && (fun < 1 || fun > 2)) ng('珍回答が ' + fun + ' 個（1〜2個にする）');
   ['title', 'text'].forEach(k => { if (!p[k] || !p[k].ja || !p[k].en) ng(k + ' の日本語か英語がありません'); });
   if (!scenes.has(p.scene)) ng('黒板の様子「' + p.scene + '」がありません');
   if (p.failAfter && (!acts.has(p.failAfter.act) || !p.failAfter.ja || !p.failAfter.en)) ng('failAfter の演出か文章がありません');
   p.rules.forEach(r => {
-    const cond = (r.first ? '先に ' : '') + (r.tag ? 'タグ ' + r.tag : r.sub ? '小分類 ' + r.sub : r.cat ? '大分類 ' + r.cat : '単語 ' + r.word);
+    const cond = (r.first ? '先に ' : '') + (r.tag ? 'タグ ' + r.tag : r.sub ? '小分類 ' + r.sub : r.cat ? '大分類 ' + r.cat : r.any ? 'どんな単語でも' : '単語 ' + r.word);
     if (!r.ja || !r.en) ng(cond + '：文章の日本語か英語がありません');
     if (!acts.has(r.act)) ng(cond + '：演出「' + r.act + '」がありません');
     Object.keys(r.variants || {}).forEach(v => { if (!acts.has(r.variants[v].act)) ng(cond + '：' + v + ' の演出「' + r.variants[v].act + '」がありません'); });

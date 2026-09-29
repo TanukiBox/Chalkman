@@ -38,6 +38,13 @@
  *
  * ■ 問題の route：第2章のように、ルートごとに別の問題にするときは、問題そのものに route: 'sky' / 'under' を書く
  *
+ * ■ routeText：通ってきたルートで、問題文の最後に足す文（第3章）
+ *     routeText: { sky: { ja: '…', en: '…' }, under: { ja: '…', en: '…' } }
+ *
+ * ■ 条件 any: true … どんな単語でも（辞書にある単語なら）当てはまる（最後の問題で使う）
+ * ■ 条件に first: true … タグより先に調べる
+ * ■ ending: 'feel' … 最後の問題で、気持ちエンドに進む
+ *
  * ■ failAfter：失敗したとき、共通反応のあとに続けて起きること（なくてもよい）
  *     failAfter: { act: 'ledgeFall', ja: '…足元の線が崩れて、下にドテッ！', en: '…' }
  */
@@ -59,7 +66,8 @@
     2: {
       sky: { ja: '第2章　空の落書き', en: 'Chapter 2: Sky Doodles' },
       under: { ja: '第2章　地下の落書き', en: 'Chapter 2: Underground Doodles' }
-    }
+    },
+    3: { ja: '第3章　黒板の出口', en: 'Chapter 3: The Way Out' }
   };
   CM.TOTAL_PROBLEMS = 20;   // 全部で何問か（黒板の地図に使う）
 
@@ -616,6 +624,201 @@
         { sub: 'plant', result: 'funny', act: 'sprout',
           ja: '「{w}」を植えたら、にょきにょき育って、棒人間ごと地上へ持ち上げた！',
           en: 'Planted the {w}, and it sprouted up so fast it carried you to the surface!' }
+      ]
+    },
+
+    // ============================================================
+    //  第3章「黒板の出口」（14〜20問目・共通）：朝。日直が来た。黒板が消される前に自由帳へ
+    // ============================================================
+
+    // 14問目：チョークの粉の嵐
+    {
+      id: 'c3q1', chapter: 3, scene: 'dustStorm',
+      title: { ja: 'チョークの粉の嵐', en: 'The chalk dust storm' },
+      text: {
+        ja: '朝だ！ 日直が窓のそばで、黒板消しをパンパンたたいている。チョークの粉の嵐がふきこんできた！ このままじゃ、粉にうもれてしまう！',
+        en: 'Morning! The class monitor is clapping erasers by the window. A chalk dust storm is blowing in! You\'ll be buried in dust!'
+      },
+      routeText: {
+        sky: { ja: '（空から降りてきたばかりなのに…！）', en: '(You only just got down from the sky...!)' },
+        under: { ja: '（地下から出てきたばかりなのに…！）', en: '(You only just climbed out from underground...!)' }
+      },
+      rules: [
+        { word: 'かさ/傘/あまがさ/umbrella', result: 'success', act: 'umbrellaDust',
+          ja: '「{w}」をさしたら、粉はぜんぶはじかれた！ そのまま歩いて進んだ。',
+          en: 'Opened the {w}, and all the dust bounced off! Walked right on.' },
+        { word: 'そうじき/掃除機/vacuum cleaner/vacuum', result: 'success', act: 'vacuumDust',
+          ja: '「{w}」が、ゴオオオッ！と粉をぜんぶ吸いこんだ！',
+          en: 'The {w} went VRRRRM and sucked up every last speck!' },
+        { word: 'みず/水/あめ/雨/おおあめ/大雨/こさめ/小雨/ゆうだち/夕立/water/rain', result: 'success', act: 'wetDust',
+          ja: '「{w}」で粉がしめって、嵐がしずまった！',
+          en: 'The {w} dampened the dust, and the storm died down!' },
+        { tag: 'big', result: 'success', act: 'dustWall',
+          ja: '大きな「{w}」を風よけにして、粉の嵐がおさまるのを待った。',
+          en: 'Hid behind the big {w} until the dust storm passed.' },
+        { tag: 'fly', result: 'success', act: 'ride',
+          ja: '「{w}」に乗って、粉の嵐の上を飛んでいった！',
+          en: 'Rode the {w} right over the dust storm!' },
+        { sub: 'bird', first: true, result: 'funny', act: 'dustBath',
+          ja: '「{w}」が粉の中で、ぱたぱた砂あびを始めた。気持ちよさそう…。粉はぜんぶ「{w}」があびてしまった！',
+          en: 'The {w} started taking a dust bath, flapping happily... and soaked up all the dust!' }
+      ]
+    },
+
+    // 15問目：落書きモンスター
+    {
+      id: 'c3q2', chapter: 3, scene: 'monster',
+      title: { ja: '落書きモンスター', en: 'The scribble monster' },
+      text: {
+        ja: '粉をかぶった黒板のすみの、ぐちゃぐちゃの落書きが、むくむく起き上がった！ 落書きモンスターだ！「ぜんぶ、ぐちゃぐちゃにしてやる〜！」',
+        en: 'A tangled scribble in the corner, covered in dust, rises up! It\'s a scribble monster! "I\'ll scribble EVERYTHING into a mess!"'
+      },
+      routeText: {
+        sky: { ja: '空の雲をまきこんだ、もくもくの体で、せまってくる！', en: 'Its fluffy body is full of sky clouds, and it\'s coming at you!' },
+        under: { ja: '地下の土をまきこんだ、ごつごつの体で、せまってくる！', en: 'Its lumpy body is full of underground dirt, and it\'s coming at you!' }
+      },
+      rules: [
+        { word: 'けしごむ/消しゴム/eraser/rubber', first: true, result: 'success', act: 'eraseMonster',
+          ja: '「{w}」でごしごし！ モンスターのぐちゃぐちゃの線が、きれいに消えていった。',
+          en: 'Scrub scrub with the {w}! The monster\'s tangled lines rubbed away clean.' },
+        { sub: 'weapon', first: true, result: 'success', act: 'slashMonster',
+          ja: '「{w}」でえいっ！ モンスターの線がほどけて、小さな落書きにもどった。',
+          en: 'Took a swing with the {w}! The monster\'s lines came undone, and it turned back into a tiny doodle.' },
+        { tag: 'heavy', result: 'success', act: 'squashMonster',
+          ja: '重い「{w}」を上から落としたら、モンスターはぺしゃんこ！',
+          en: 'Dropped the heavy {w} on top, and the monster went SPLAT!' },
+        { sub: 'magic', result: 'success', act: 'shrinkMonster',
+          ja: '「{w}」！ モンスターはみるみる小さくなって、かわいい落書きになった。',
+          en: '"{w}!" The monster shrank and shrank into a cute little doodle.' },
+        { sub: 'people', result: 'funny', act: 'scoldMonster',
+          ja: '「{w}」に「こらっ！ 夜ふかししないで、もう寝なさい！」と、しかられて、モンスターはしょんぼり寝てしまった。',
+          en: 'The {w} scolded it: "Hey! Stop staying up late and go to bed!" The monster sulked off to sleep.' }
+      ]
+    },
+
+    // 16問目：先生の赤ペンのバツ印
+    {
+      id: 'c3q3', chapter: 3, scene: 'redX',
+      title: { ja: '赤ペンのバツ印', en: 'The red X' },
+      text: {
+        ja: '先生の赤ペンの、大きなバツ印が道をふさいでいる！「まちがい！」とでも言いたそう…。バツの線にさわると、ビシッとはじき返される！',
+        en: 'A giant red X from the teacher\'s pen blocks the way! It seems to be saying "WRONG!"... Touch its lines and you get bounced right back!'
+      },
+      rules: [
+        { word: 'まる/丸/まるじるし/丸印/はなまる/花丸/ひゃくてん/百点/100点/まんてん/満点/ごうかく/合格/せいかい/正解/circle mark/check mark/gold star/perfect score/correct answer', result: 'success', act: 'turnCircle',
+          ja: '「{w}」と書いたら、バツ印がくるっと「まる」に変わった！ まるの中をくぐって通りぬけた。',
+          en: 'You wrote "{w}", and the X spun around into a big circle! Walked right through the middle.' },
+        { word: 'けしごむ/消しゴム/eraser/rubber', result: 'success', act: 'eraseX',
+          ja: '「{w}」で、バツ印をごしごし消した！',
+          en: 'Rubbed the X away with the {w}!' },
+        { tag: 'small', result: 'success', act: 'slipX',
+          ja: '小さな「{w}」のあとについて、バツの足のあいだの、小さなすき間をくぐりぬけた！',
+          en: 'Followed the tiny {w} through the little gap between the legs of the X!' },
+        { tag: 'fly', result: 'success', act: 'flyOverX',
+          ja: '「{w}」に乗って、バツ印の上を飛びこえた！',
+          en: 'Rode the {w} right over the top of the X!' },
+        { word: 'せんせい/先生/たんにん/担任/teacher/homeroom teacher', result: 'funny', act: 'teacherFix',
+          ja: '「{w}」がやって来て、バツ印を見て「あら、まちがえた」。赤ペンで、はなまるに書き直してくれた！',
+          en: 'The {w} came by, looked at the X, and said "Oops, my mistake." Then redrew it as a big gold star!' }
+      ]
+    },
+
+    // 17問目：時計の針が進む
+    {
+      id: 'c3q4', chapter: 3, scene: 'clock',
+      title: { ja: '進む時計の針', en: 'The ticking clock' },
+      text: {
+        ja: 'カチ、カチ…黒板の上の時計が、もうすぐ8時！ 8時になったら、日直が黒板を消しはじめる！ 時計の針を止めたい！',
+        en: 'Tick, tock... the clock above the board is almost at 8! At 8 o\'clock, the monitor starts erasing the board! Stop the clock hands!'
+      },
+      rules: [
+        { tag: 'heavy', result: 'success', act: 'hangWeight',
+          ja: '重い「{w}」を長い針にぶら下げたら、針が重くて動かなくなった！',
+          en: 'Hung the heavy {w} on the minute hand, and it was too heavy to move!' },
+        { tag: 'long', result: 'success', act: 'jamHands',
+          ja: '長い「{w}」を、時計の針のあいだにつっかえ棒にした！ 針が止まった。',
+          en: 'Wedged the long {w} between the clock hands like a doorstop! They stopped.' },
+        { sub: 'time', result: 'success', act: 'rewind',
+          ja: '「{w}」と書いたら、時計の針がくるくるくる…と、うしろにもどった！',
+          en: 'You wrote "{w}", and the clock hands spun backward, whirr whirr whirr!' },
+        { sub: 'magic', result: 'success', act: 'freezeClock',
+          ja: '「{w}」！ 時計がこおりついたみたいに、ぴたっと止まった。',
+          en: '"{w}!" The clock froze solid and stopped dead.' },
+        { sub: 'bird', result: 'funny', act: 'cuckoo',
+          ja: '「{w}」が時計の中に住みついて、はと時計になった！ ポッポー、ポッポー…鳴いているあいだは、針が止まっている。',
+          en: 'The {w} moved into the clock and turned it into a cuckoo clock! Cuckoo, cuckoo... the hands stop while it sings.' }
+      ]
+    },
+
+    // 18問目：黒板消しがせまってくる
+    {
+      id: 'c3q5', chapter: 3, scene: 'eraserCome',
+      title: { ja: 'せまる黒板消し', en: 'Here comes the eraser' },
+      text: {
+        ja: '日直が黒板消しを持った！ 左のはしから、ザーッ、ザーッと、落書きが消されていく。黒板消しが、こっちへせまってくる！',
+        en: 'The monitor picked up the eraser! Swish, swish, the doodles are being wiped away from the left. The eraser is heading your way!'
+      },
+      rules: [
+        { word: 'のり/糊/ぼんど/せっちゃくざい/接着剤/glue/superglue', result: 'success', act: 'glueEraser',
+          ja: '「{w}」を黒板にぬったら、黒板消しがベタッとくっついて、動けなくなった！',
+          en: 'Spread the {w} on the board, and the eraser got stuck fast! It can\'t move!' },
+        { tag: 'hard', result: 'success', act: 'hardBlock',
+          ja: 'かたい「{w}」は、黒板消しでも消せない！ そのかげにかくれて、やりすごした。',
+          en: 'The hard {w} can\'t be erased! You hid behind it until the eraser passed.' },
+        { tag: 'small', result: 'success', act: 'hideCorner',
+          ja: '小さな「{w}」が、黒板のすみの小さなすき間を見つけた！ 黒板消しの届かないところに、かくれた。',
+          en: 'The tiny {w} found a little gap in the corner of the board, out of the eraser\'s reach! You hid there.' },
+        { tag: 'fly', result: 'success', act: 'escapeFly',
+          ja: '「{w}」に乗って、黒板消しの届かない、黒板のいちばん上へ逃げた！',
+          en: 'Rode the {w} up to the very top of the board, out of the eraser\'s reach!' },
+        { tag: 'cute', result: 'funny', act: 'tooCute',
+          ja: '黒板消しが「{w}」の前で、ぴたっ。…かわいすぎて、消せない！ 黒板消しは、そっと帰っていった。',
+          en: 'The eraser stopped dead in front of the {w}... too cute to erase! It quietly went away.' }
+      ]
+    },
+
+    // 19問目：出口の扉に鍵がかかっている
+    {
+      id: 'c3q6', chapter: 3, scene: 'door',
+      title: { ja: '鍵のかかった扉', en: 'The locked door' },
+      text: {
+        ja: '黒板のはしに、出口の扉！ 自由帳は、この向こうだ。…ガチャガチャ。鍵がかかっている！',
+        en: 'An exit door at the edge of the board! The notebook is just beyond it... rattle rattle. It\'s locked!'
+      },
+      rules: [
+        { word: 'かぎ/鍵/key', result: 'success', act: 'unlock',
+          ja: '「{w}」をさしこんで、カチャッ！ 扉が開いた！',
+          en: 'Put the {w} in the lock... CLICK! The door opened!' },
+        { tag: 'small', result: 'success', act: 'keyhole',
+          ja: '小さな「{w}」といっしょに、鍵穴をくぐりぬけた！',
+          en: 'Squeezed through the keyhole along with the tiny {w}!' },
+        { sub: 'magic', result: 'success', act: 'magicOpen',
+          ja: '「{w}」！ 扉がひとりでに、ギギーッと開いた！',
+          en: '"{w}!" The door creaked open all by itself!' },
+        { sub: 'weapon', result: 'success', act: 'breakDoor',
+          ja: '「{w}」で、扉をバキッとこわした！',
+          en: 'Smashed the door open with the {w}! CRACK!' },
+        { tag: 'sound', result: 'funny', act: 'knock',
+          ja: '「{w}」でコンコン。「はーい」と、扉の向こうから開けてくれた！ …だれ？',
+          en: 'Knock knock with the {w}... "Coming!" Someone opened it from the other side! ...Who was that?' }
+      ]
+    },
+
+    // 20問目：最後に一言
+    {
+      id: 'c3q7', chapter: 3, scene: 'finale', last: true,
+      title: { ja: '最後に一言', en: 'One last word' },
+      text: {
+        ja: '自由帳が見えた！ ページが開いて、待っている。…でも、その前に。この棒人間を描いてくれた子に、最後に何か伝えたい。黒板に、一言だけ書き残そう。',
+        en: 'There\'s the notebook, open and waiting! ...But first. You want to leave one last message for the kid who drew you. Write just one word on the board.'
+      },
+      rules: [
+        { sub: 'feeling', result: 'success', act: 'lastFeeling', ending: 'feel',
+          ja: '黒板に、大きく「{w}」と書いた。…きっと、伝わる。',
+          en: 'You wrote "{w}" big across the board... It\'ll get through.' },
+        { any: true, result: 'success', act: 'lastWord',
+          ja: '黒板に「{w}」と書き残した。描いてくれた子への、おみやげだ。',
+          en: 'You left "{w}" on the board, a little gift for the kid who drew you.' }
       ]
     }
   ];
