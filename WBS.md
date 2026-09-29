@@ -279,4 +279,5 @@
 
 - 公開：GitHub Pages（https://tanukibox.github.io/Chalkman/）。`SHARE_URL` に設定済み。
 - 公開前にすること：`config.js` の `DEV_BUTTONS` を `false` にする（タイトルの確認用ボタンが消える。試遊のあいだは true のまま）。
+- 公開はタイミングを見て、あなたの合図で行う（今はしない）。公開するときは、Tanuki Box のホームページ（tanukibox.github.io）にもチョークマンの紹介を足す。
 
