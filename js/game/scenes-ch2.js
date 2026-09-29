@@ -540,7 +540,7 @@
     g.setTransform(c.k, 0, 0, c.k, 0, 0);
     g.clearRect(0, 0, st.w, st.h);
     g.globalCompositeOperation = 'source-over';
-    g.fillStyle = 'rgba(8,12,40,' + (0.62 * sc.night) + ')';
+    g.fillStyle = 'rgba(8,12,40,' + (0.5 * sc.night) + ')';
     g.fillRect(0, 0, st.w, st.h);
     g.globalCompositeOperation = 'destination-out';
     sc.lights.concat([{ x: D.man.x, y: D.man.gy - 45 * D.s, r: 50 * D.s }]).forEach(function (l) {
@@ -556,48 +556,74 @@
     });
   }
   CM.nightSky = nightSky;
+  /**
+   * 斜めの雲の道（1本の帯）。(x0,y0) から (x1,y1) へ。上の面が歩くところ、下はもこもこ
+   */
+  function bandPts(x0, y0, x1, y1, th, s, sd) {
+    var r = U.rng(sd), pts = [], dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+    var nx = -uy, ny = ux;   // 下向きの法線（進む向きの右）
+    var n = Math.max(2, Math.round(len / (26 * s))), i;
+    pts.push(x0, y0);
+    for (i = 1; i <= n; i++) pts.push(x0 + dx * i / n, y0 + dy * i / n + (i < n ? (r() - 0.5) * 1.5 * s : 0));   // 上（ほぼまっすぐ）
+    var bx = x1 + nx * th, by = y1 + ny * th;
+    bumpTo(pts, x1, y1, bx, by, th * 0.55);                                                              // 先のはし（まるく）
+    var px = bx, py = by;
+    for (i = n - 1; i >= 0; i--) { var qx = x0 + dx * i / n + nx * th, qy = y0 + dy * i / n + ny * th; bumpTo(pts, px, py, qx, qy, 6 * s * (0.7 + r() * 0.5)); px = qx; py = qy; }   // 下（もこもこ）
+    return pts;
+  }
   SC.nightFork = {
     setup: function (sc, D) {
       var s = D.s;
       sc.segs = [];
       sc.manX = X(D, 0.14); sc.restX = X(D, 0.3);
-      sc.forkX = X(D, 0.4);
+      sc.forkX = X(D, 0.42);
       sc.night = 1; sc.lights = []; sc.signLit = false;
-      sc.paths = { up: -0.62, mid: 0, low: 0.55 };   // 分かれ道のかたむき（右へ行くほど上・そのまま・下）
+      sc.paths = { up: -0.72, mid: 0, low: 0.42 };   // 分かれ道のかたむき（右へ行くほど上・そのまま・下）
       var r = U.rng(77);
       sc.stars = [];
-      for (var i = 0; i < 9; i++) sc.stars.push({ x: X(D, 0.3 + r() * 0.66), y: D.st.y + D.st.h * (0.14 + r() * 0.26), r: (4 + r() * 4) * s, ph: r() * TAU });
+      for (var i = 0; i < 9; i++) sc.stars.push({ x: X(D, 0.3 + r() * 0.66), y: D.st.y + D.st.h * (0.12 + r() * 0.2), r: (4 + r() * 4) * s, ph: r() * TAU });
     },
     /** 道の高さ（x のところ） */
     pathY: function (sc, D, which, x) { return D.gy + Math.max(0, x - sc.forkX) * sc.paths[which]; },
     drawChalk: function (ctx, sc, D) {
-      var s = D.s, fx = sc.forkX;
-      skyFloor(ctx, D, D.st.x - 20, fx + 14 * s, D.gy, 15);
-      // 3つの道（小さな雲が、階段のように並ぶ）
-      ['up', 'mid', 'low'].forEach(function (k, j) {
-        for (var i = 0; i < 3; i++) {
-          var cx = fx + (40 + i * 64) * s, cy = SC.nightFork.pathY(sc, D, k, cx);
-          var depth = 19 * s, pts = islandPts(cx - 32 * s, cx + 32 * s, cy, depth, s, 160 + j * 5 + i, false, false);
-          drawIsland(ctx, D, pts, cx - 32 * s, cx + 32 * s, cy, depth, 160 + j * 5 + i);
-        }
+      var s = D.s, fx = sc.forkX, x1 = D.st.x + D.st.w + 30, th = 16 * s;
+      // 重なったところは、手前の物で奥の物をかくす（線がからまって見えないように）
+      function cover(pts) {
+        ctx.save(); ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.moveTo(pts[0], pts[1]);
+        for (var q = 2; q < pts.length; q += 2) ctx.lineTo(pts[q], pts[q + 1]);
+        ctx.closePath(); ctx.fill(); ctx.restore();
+      }
+      // 3本の雲の道（奥から：下 → まっすぐ → 上）
+      ['low', 'mid', 'up'].forEach(function (k, j) {
+        var sx = fx - 10 * s, sy = SC.nightFork.pathY(sc, D, k, sx), ey = SC.nightFork.pathY(sc, D, k, x1);
+        var pts = bandPts(sx, sy, x1, ey, th, s, 170 + j);
+        cover(pts);
+        fill(ctx, pts, COL.chalk, 0.16);
+        L(ctx, pts, o(COL.chalk, 170 + j, 2.8, 1));
       });
-      // 道しるべ（3つの矢印の板）
-      var px = fx - 30 * s, top = D.gy - 100 * s;
-      L(ctx, [px, D.gy, px, top], o(COL.orange, 900, 2.6));
+      // 手前の雲（分かれ道のところまで）
+      var depth = Math.min(52 * s, D.st.y + D.st.h - D.gy - 6), isl = islandPts(D.st.x - 60, fx + 22 * s, D.gy, depth, s, 15, true, false);
+      cover(isl);
+      drawIsland(ctx, D, isl, D.st.x - 60, fx + 22 * s, D.gy, depth, 15);
+      // 道しるべ（手前の雲の上。3つの矢印は、それぞれの道の向き）
+      var px = fx - 34 * s, top = D.gy - 104 * s;
+      L(ctx, [px, D.gy, px, top], o(COL.orange, 900, 2.8));
       var labels = sc.signLit ? [D.T('signUp'), D.T('signMid'), D.T('signLow')] : ['？？', '？？', '？？'];
-      [-0.45, 0, 0.35].forEach(function (a, i) {
-        var by = top + 10 * s + i * 24 * s;
+      [Math.atan(sc.paths.up), 0, Math.atan(sc.paths.low)].forEach(function (a, i) {
+        var by = top + 12 * s + i * 26 * s;
         ctx.save(); ctx.translate(px, by); ctx.rotate(a);
-        var bw = 58 * s, bh = 16 * s;
-        L(ctx, [0, -bh / 2, bw, -bh / 2, bw + 10 * s, 0, bw, bh / 2, 0, bh / 2, 0, -bh / 2], o(COL.orange, 901 + i, 2));
-        CM.chalk.text(ctx, labels[i], bw / 2 + 2 * s, 1, { size: 11 * s + 2, color: i === 0 && sc.signLit ? COL.yellow : COL.chalk, alpha: 0.9, maxW: bw - 6 * s });
+        var bw = 60 * s, bh = 17 * s, board = [0, -bh / 2, bw, -bh / 2, bw + 10 * s, 0, bw, bh / 2, 0, bh / 2, 0, -bh / 2];
+        fill(ctx, board, COL.orange, 0.25);
+        L(ctx, board, o(COL.orange, 901 + i, 2.2));
+        CM.chalk.text(ctx, labels[i], bw / 2 + 2 * s, 1, { size: 11 * s + 2, color: i === 0 && sc.signLit ? COL.yellow : COL.chalk, alpha: 0.95, maxW: bw - 6 * s });
         ctx.restore();
       });
       if (sc.arrow) {
         // 正しい道を示す矢印（点線）
-        var pts = [];
-        for (var x = fx; x < fx + 190 * s; x += 18 * s) pts.push(x, SC.nightFork.pathY(sc, D, 'up', x) - 26 * s);
-        for (var q = 0; q + 3 < pts.length; q += 4) L(ctx, [pts[q], pts[q + 1], pts[q + 2], pts[q + 3]], o(COL.yellow, 950 + q, 2.2, sc.arrow));
+        var ap = [];
+        for (var x = fx; x < fx + 190 * s; x += 18 * s) ap.push(x, SC.nightFork.pathY(sc, D, 'up', x) - 26 * s);
+        for (var q = 0; q + 3 < ap.length; q += 4) L(ctx, [ap[q], ap[q + 1], ap[q + 2], ap[q + 3]], o(COL.yellow, 950 + q, 2.2, sc.arrow));
       }
     },
     drawReal: function (ctx, sc, D) { if (sc.night > 0.01) nightSky(ctx, sc, D); }

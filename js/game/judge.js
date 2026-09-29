@@ -216,9 +216,10 @@
     // 2. 問題のタグ → 3. 問題の小分類など
     if (problem && problem.rules) {
       // その問題で決めた「決まった単語」がいちばん先（例：コウモリの洞窟の「こもりうた」は、音が出ても成功）
-      var byWord = problem.rules.filter(function (x) { return x.word; });
-      var byTag = problem.rules.filter(function (x) { return x.tag; });
-      var byOther = problem.rules.filter(function (x) { return !x.tag && !x.word; });
+      //   first: true の条件も、タグより先に調べる（例：モグラには、音が出ても「かたい」ならたたく）
+      var byWord = problem.rules.filter(function (x) { return x.word || x.first; });
+      var byTag = problem.rules.filter(function (x) { return x.tag && !x.first; });
+      var byOther = problem.rules.filter(function (x) { return !x.tag && !x.word && !x.first; });
       var steps = [[2, byWord], [2, byTag], [3, byOther]];
       for (var s = 0; s < steps.length; s++) {
         var list = steps[s][1];

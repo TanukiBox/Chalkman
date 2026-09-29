@@ -655,20 +655,31 @@
   A.whackMole = function* (D) {
     var s = D.s, sc = D.sc, m = D.man;
     sc.quiet = true;
+    // モグラはいったん全部もぐって、1ぴきずつ、ちがう穴から顔を出す（モグラたたき）
+    sc.moles.forEach(function (ml) { ml.mode = 'down'; });
     yield* pickUp(D, 'swing');
-    for (var i = 0; i < sc.moles.length; i++) {
-      var ml = sc.moles[i];
+    pop(D, 'whackGo', m.x, D.gy - 130 * s, COL.yellow, 18);
+    var order = [1, 0, 2];
+    for (var i = 0; i < order.length; i++) {
+      var ml = sc.moles[order[i]];
+      yield 0.25;
       ml.mode = 'up';
-      yield D.walkTo(ml.hx - 44 * s, { anim: 'walk', speed: 70 * s });
+      D.sfx.play('pop');
+      D.fx.word('!', ml.hx, D.gy - 70 * s, { size: 14 * s + 4, color: COL.orange, life: 0.4 });
+      m.f = ml.hx >= m.x ? 1 : -1;
+      yield D.walkTo(ml.hx - m.f * 44 * s, { anim: 'run', speed: 150 * s });
+      m.f = ml.hx >= m.x ? 1 : -1;
       m.play('swing');
       yield 0.64;   // ふりかぶって（0.5秒）→ ふりおろしたところで、ポコッ
       D.sfx.play('boing');
+      D.fx.shake(4, 0.15);
       pop(D, 'sfx_poko', ml.hx, D.gy - 70 * s, COL.chalk, 18);
       D.fx.add({ type: 'star', x: ml.hx, y: D.gy - 40 * s, life: 0.4, size: 8 * s, color: COL.yellow });
       ml.mode = 'dizzy';
-      yield 0.35;
+      yield 0.3;
       m.play('idle');
     }
+    m.f = 1;
     yield 0.3;
     yield D.walkTo(exitX(D));
   };
@@ -863,6 +874,29 @@
       if (t - said > 1.6) { said = t; D.fx.word(D.T('whisper'), w.x, D.gy - 50 * s, { size: 11 * s + 4, color: COL.chalk, life: 0.9 }); }
     });
     yield D.walkTo(exitX(D) + 40 * s, { anim: 'sneak', speed: 58 * s });
+  };
+
+  // 武器をかまえてしのび足。起きたコウモリも、武器を見て逃げる（武器）
+  A.batsShoo = function* (D) {
+    var s = D.s, sc = D.sc, m = D.man;
+    yield* pickUp(D, 'front');
+    m.play('sneak');
+    var b = sc.bats[4];
+    var mx = m.x, tx = b.x - 10 * s;
+    yield D.tween((tx - mx) / (45 * s), function (k) { m.x = U.lerp(mx, tx, k); });
+    // 1ぴきだけ目をさます
+    b.hang = false; b.face = -1; b.vx = 0; b.vy = 0; b.y += 30 * s;
+    D.fx.word('?', b.x, b.y - 20 * s, { size: 16 * s + 4, color: COL.purple, life: 0.6 });
+    D.sfx.play('tiny');
+    m.play('hold'); m.shake = true;
+    yield 0.6;
+    m.shake = false;
+    pop(D, 'batEek', b.x + 10 * s, b.y - 30 * s, COL.purple, 16);
+    b.face = 1; b.vx = 240 * s; b.vy = -40 * s; b.wob = true;
+    D.sfx.play('flop');
+    yield 0.6;
+    m.play('sneak');
+    yield D.walkTo(exitX(D), { anim: 'sneak', speed: 55 * s });
   };
 
   // こもりうたで、コウモリがもっとぐっすり（決まった単語）

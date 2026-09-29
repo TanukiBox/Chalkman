@@ -141,6 +141,8 @@
       sfx_attaka: 'あったか〜い',
       // 作り直した問題（はねる雲・夜の分かれ道・あふれる地下水）
       sfx_boyon: 'ぼよよーん',
+      whackGo: 'モグラたたきだ！',
+      batEek: 'ひえっ！',
       sfx_nuri: 'ぬりぬり',
       sfx_pita: 'ぴたっ！',
       sfx_beri: 'べりっ',
@@ -419,6 +421,8 @@
       sfx_attaka: 'So warm~',
       // Redesigned problems
       sfx_boyon: 'BOIOING',
+      whackGo: 'Whack-a-mole time!',
+      batEek: 'Eek!',
       sfx_nuri: 'Smear smear',
       sfx_pita: 'Stuck!',
       sfx_beri: 'Peel',

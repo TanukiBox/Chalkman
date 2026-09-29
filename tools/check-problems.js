@@ -38,7 +38,7 @@ CM.PROBLEMS.forEach((p, i) => {
   if (!scenes.has(p.scene)) ng('黒板の様子「' + p.scene + '」がありません');
   if (p.failAfter && (!acts.has(p.failAfter.act) || !p.failAfter.ja || !p.failAfter.en)) ng('failAfter の演出か文章がありません');
   p.rules.forEach(r => {
-    const cond = r.tag ? 'タグ ' + r.tag : r.sub ? '小分類 ' + r.sub : r.cat ? '大分類 ' + r.cat : '単語 ' + r.word;
+    const cond = (r.first ? '先に ' : '') + (r.tag ? 'タグ ' + r.tag : r.sub ? '小分類 ' + r.sub : r.cat ? '大分類 ' + r.cat : '単語 ' + r.word);
     if (!r.ja || !r.en) ng(cond + '：文章の日本語か英語がありません');
     if (!acts.has(r.act)) ng(cond + '：演出「' + r.act + '」がありません');
     Object.keys(r.variants || {}).forEach(v => { if (!acts.has(r.variants[v].act)) ng(cond + '：' + v + ' の演出「' + r.variants[v].act + '」がありません'); });
