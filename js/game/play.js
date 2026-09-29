@@ -330,7 +330,9 @@
 
     function stageScale(w) {
       var st = app.L.stage;
-      return Math.min((st.w * 0.34) / w.width, (st.h * 0.13) / w.height);
+      // カメラを引いている場面では、文字を少し大きめに（小さくて読めなくならないように）
+      var boost = (P.D && P.D.sc.wordBoost) || 1;
+      return Math.min((st.w * 0.34) / w.width, (st.h * 0.13) / w.height) * boost;
     }
 
     function updateWriting(dt) {

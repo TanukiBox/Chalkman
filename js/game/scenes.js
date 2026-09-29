@@ -383,7 +383,10 @@
     var wag = Math.sin(d.tail) * (happy ? 8 : 4);
     L(bez([-24, -30], [-34, -34], [-36 + wag, -44], [-30 + wag, -50], 8), 20);
     // 首輪
-    L([15, -42, 22, -33], 21, COL.red, 3);
+    // 首（胴から頭へつなぐ。食べるときは頭といっしょに下がる）
+    L(bez([4, -43], [9, -47], [13, -50 + head], [17, -54 + head], 4), 22);
+    L(bez([18, -34], [21, -37], [24, -40 + head], [27, -42 + head], 4), 23);
+    L([10, -46 + head * 0.6, 21, -37 + head * 0.6], 21, COL.red, 3);   // 首輪
     // 頭（まるい頭に短い鼻づら。たれ耳）
     ctx.save();
     ctx.translate(0, head);
@@ -392,15 +395,15 @@
     ctx.save(); ctx.globalAlpha *= 0.35; ctx.fillStyle = main; ctx.beginPath(); ctx.moveTo(ear[0], ear[1]);
     for (var ei = 2; ei < ear.length; ei += 2) ctx.lineTo(ear[ei], ear[ei + 1]);
     ctx.closePath(); ctx.fill(); ctx.restore();
-    L(bez([22, -46], [14, -58], [24, -71], [34, -69], 10), 30);            // 頭のうしろ〜上
+    L(bez([17, -54], [15, -64], [24, -71], [34, -69], 10), 30);            // 頭のうしろ〜上
     L(bez([34, -69], [42, -68], [45, -61], [44, -57], 6), 31);             // おでこ
     L(bez([44, -57], [50, -58], [55, -54], [53, -49], 6), 32);             // 鼻づらの上
     L(bez([53, -49], [51, -45], [47, -45], [43, -46], 5), 33);             // 鼻の下
     if (barkOpen) {
       L([50, -46, 49, -38, 41, -42], 37);                                  // ワン！ と口をあける
-      L(bez([41, -42], [36, -40], [28, -40], [22, -46], 6), 34);
+      L(bez([41, -42], [36, -40], [31, -40], [27, -42], 6), 34);
     } else {
-      L(bez([43, -46], [38, -41], [30, -40], [22, -46], 6), 34);           // あご〜首
+      L(bez([43, -46], [38, -41], [31, -40], [27, -42], 6), 34);           // あご
       if (happy) L(bez([46, -45], [48, -39], [44, -38], [44, -44], 5), 38, COL.pink, 2.2);  // べろ
     }
     L(ear, 35, main, 2.4);
@@ -605,18 +608,57 @@
     }
   };
 
-  // 3問目（新）：古い黒板の大きなひび割れ
+  // 4問目（新）：古い黒板の大きなひび割れ（とび越えられない幅。カメラを引いて見せる）
   SC.crack = {
     setup: function (sc, D) {
-      SC.cliff.setup(sc, D);
+      var st = D.st;
+      var a = X(D, 0.62), b = a + st.w * 0.85;          // ひびの幅は、棒人間の背の3倍くらい
+      sc.segs = [{ x0: st.x - st.w * 0.6, x1: a, openR: true }, { x0: b, x1: b + st.w * 1.2, openL: true }];
+      sc.gap = { x0: a, x1: b };
+      sc.manX = X(D, 0.3); sc.restX = X(D, 0.46);
+      sc.camIn = { cx: st.x + st.w / 2, cy: st.y + st.h / 2, z: 1 };
+      // 引きの画：ひびの両側の地面まで入るように
+      var zo = 0.56;
+      sc.camOut = { cx: (sc.manX + b) / 2 + st.w * 0.12, cy: D.gy - st.h * 0.08 / zo, z: zo };
+      sc.depth = st.h * 1.4;
+      sc.wordBoost = 1.35;
+    },
+    intro: function* (sc, D) {
+      yield 0.6;
+      D.fx.word(D.T('hmm'), D.man.x + 20 * D.s, D.gy - 110 * D.s, { size: 20 * D.s + 6 });
+      yield 0.5;
+      D.sfx.play('whoosh');
+      yield D.camTo(sc.camOut, 1.4);
+      D.man.play('puzzled');
+      D.fx.word(D.T('soWide'), (sc.gap.x0 + sc.gap.x1) / 2, D.gy - 150 * D.s, { size: (22 * D.s + 6) / sc.camOut.z * 0.8, color: COL.yellow });
+      D.sfx.play('gasp');
+      yield 1.0;
+      D.man.play('idle');
     },
     drawChalk: function (ctx, sc, D) {
+      var g = sc.gap, s = D.s, gy = D.gy, dep = sc.depth, w = g.x1 - g.x0;
+      // 割れ目の奥（黒板のすき間。暗くて底が見えない）
+      var L = [g.x0, gy], R = [g.x1, gy], r = U.rng(12);
+      for (var q = 1; q <= 8; q++) {
+        var f = q / 8, yy = gy + dep * f;
+        L.push(g.x0 + w * 0.42 * f + (r() - 0.5) * 22 * s, yy);
+        R.push(g.x1 - w * 0.42 * f + (r() - 0.5) * 22 * s, yy);
+      }
+      ctx.save();
+      var gr = ctx.createLinearGradient(0, gy, 0, gy + dep * 0.6);
+      gr.addColorStop(0, 'rgba(0,0,0,0.25)'); gr.addColorStop(1, 'rgba(0,0,0,0.6)');
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(L[0], L[1]);
+      for (var i = 2; i < L.length; i += 2) ctx.lineTo(L[i], L[i + 1]);
+      for (i = R.length - 2; i >= 0; i -= 2) ctx.lineTo(R[i], R[i + 1]);
+      ctx.closePath(); ctx.fill(); ctx.restore();
+      // 割れ目のふち（ギザギザの壁が下へつづく）
+      CM.chalk.line(ctx, L, { w: 2.2, alpha: 0.75, seed: 4 });
+      CM.chalk.line(ctx, R, { w: 2.2, alpha: 0.75, seed: 5 });
       drawGround(ctx, sc, D);
-      // ひび（黒板そのものの割れ目。ギザギザが下へのびる）
-      var g = sc.gap, s = D.s, m = (g.x0 + g.x1) / 2;
-      CM.chalk.line(ctx, [m - 6 * s, D.gy + 20 * s, m + 8 * s, D.gy + 40 * s, m - 4 * s, D.gy + 60 * s], { w: 1.8, alpha: 0.5, seed: 4 });
-      CM.chalk.line(ctx, [g.x0, D.gy, g.x0 - 20 * s, D.gy - 30 * s, g.x0 - 8 * s, D.gy - 60 * s], { w: 1.4, alpha: 0.35, seed: 5 });
-      CM.chalk.line(ctx, [g.x1, D.gy, g.x1 + 16 * s, D.gy - 24 * s], { w: 1.4, alpha: 0.35, seed: 6 });
+      // 黒板の上のほうへものびる、細いひび
+      CM.chalk.line(ctx, [g.x0 + w * 0.3, gy, g.x0 + w * 0.22, gy - 60 * s, g.x0 + w * 0.34, gy - 130 * s, g.x0 + w * 0.26, gy - 210 * s], { w: 1.5, alpha: 0.35, seed: 6 });
+      CM.chalk.line(ctx, [g.x0 + w * 0.34, gy - 130 * s, g.x0 + w * 0.46, gy - 170 * s], { w: 1.3, alpha: 0.3, seed: 7 });
+      CM.chalk.line(ctx, [g.x1 - w * 0.2, gy, g.x1 - w * 0.12, gy - 50 * s, g.x1 - w * 0.18, gy - 95 * s], { w: 1.3, alpha: 0.3, seed: 8 });
     }
   };
 

@@ -50,7 +50,8 @@
   /** 崖・地面のない所の、はし（x0）からはし（x1）まで */
   function gapSpan(D) {
     var g = D.sc.gap || { x0: D.st.x + D.st.w * 0.4, x1: D.st.x + D.st.w * 0.68 };
-    return { x0: g.x0 - 10 * D.s, x1: Math.min(g.x1 + 10 * D.s, D.st.x + D.st.w + 40) };
+    var v = D.view || D.st;
+    return { x0: g.x0 - 10 * D.s, x1: Math.min(g.x1 + 10 * D.s, v.x + v.w + 40) };
   }
   /** 棒人間が文字の上に跳び乗って、またがる */
   function* mount(D) {
