@@ -575,8 +575,8 @@
         padEl.appendChild(btn(T('toLab'), 'small', function () { app.sfx.play('ui'); app.go('lab'); }));
         // 確認用（試遊のあいだだけ）：第2章から始める
         var tr = el('div', 'row kb-hide');
-        [['sky', 'testSky'], ['under', 'testUnder']].forEach(function (d) {
-          tr.appendChild(btn(T(d[1]), 'small', function () { app.sfx.play('ui'); startAt(2, d[0]); }));
+        [[2, 'sky', 'testSky'], [2, 'under', 'testUnder'], [3, 'sky', 'testCh3']].forEach(function (d) {
+          tr.appendChild(btn(T(d[2]), 'small', function () { app.sfx.play('ui'); startAt(d[0], d[1]); }));
         });
         padEl.appendChild(tr);
       } else if (st === 'input' || st === 'result' || st === 'dying') {
