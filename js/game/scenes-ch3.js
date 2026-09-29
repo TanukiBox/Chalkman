@@ -336,16 +336,25 @@
       var s = D.s, st = D.st;
       sc.segs = fullGround(D);
       sc.manX = X(D, 0.62); sc.restX = X(D, 0.78);
-      sc.ex = st.x + 20 * s; sc.stopX = X(D, 0.44); sc.speed = 1; sc.moving = true;
+      // 黒板消しは、棒人間が歩いて入ってきてから、左の外から入ってくる
+      sc.ex = st.x - 50 * s; sc.stopX = X(D, 0.44); sc.speed = 1; sc.moving = false; sc.started = false; sc.wait = 0.5;
       sc.e = { x: sc.ex, y: st.y + st.h * 0.4, rot: 0.1, s: s * 1.5 };
       sc.safe = [];          // 消されないところ { x0, y0, x1, y1 }
       sc.t = 0; sc.swishT = 0.4; sc.top = st.y + st.h * 0.14;
     },
     update: function (sc, dt, D) {
       var s = D.s, st = D.st;
+      if (!sc.started) {
+        if (D.intro) return;                 // 歩いて入ってくるあいだは、まだ来ない
+        sc.wait -= dt;
+        if (sc.wait > 0) return;
+        sc.started = true; sc.moving = true;
+        D.sfx.play('whoosh');
+        D.fx.word(D.T('eraserComing'), st.x + st.w * 0.3, st.y + st.h * 0.3, { size: 16 * s + 4, color: COL.red, life: 1.4, vy: -10 });
+      }
       if (!sc.moving) return;
       sc.t += dt * sc.speed;
-      if (sc.ex < sc.stopX) sc.ex += dt * 18 * s * sc.speed;
+      if (sc.ex < sc.stopX) sc.ex += dt * (sc.ex < st.x + 24 * s ? 110 : 18) * s * sc.speed;   // はじめは、すっと入ってくる
       var k = Math.sin(sc.t * 3.2);
       sc.e.x = sc.ex + Math.cos(sc.t * 3.2) * 6 * s;
       sc.e.y = U.lerp(sc.top + 20 * s, st.y + st.h - 20 * s, (k + 1) / 2);
@@ -481,92 +490,309 @@
 
   // ------------------------------------------------------------
   // エンディング：自由帳のページ（本物の紙に、えんぴつと色えんぴつ）
+  //   0.0〜1.1秒 表紙が開く → 絵が1つずつ描かれていく → リボンの題名 → はんこ → 書いたことばが流れる
+  //   チョークが多い・隠しエンドは、ファンファーレと紙ふぶき。少ないときは、やさしい曲
   // ------------------------------------------------------------
   var PENCIL = '#5d5d66';
+  var RAINBOW = ['#e0567a', '#e07a30', '#e0b21c', '#4caf6a', '#3f8fd1', '#9a6bd1'];
   function pen(c, sd, w, al) { return { w: w || 2, color: c || PENCIL, alpha: al === undefined ? 0.9 : al, seed: sd, wob: 0.6 }; }
-  function drawPage(ctx, pg, s) {
+  /** 0→1（t0 から sec 秒かけて） */
+  function ramp(t, t0, sec) { return U.clamp((t - t0) / (sec || 0.4), 0, 1); }
+  /** ぽんっと出てくる大きさ */
+  function popK(t, t0) { return U.easeBack(ramp(t, t0, 0.35)); }
+
+  function drawCover(ctx, pg, s, k, label) {
+    // 表紙（左はしを軸に開く）
+    var w = pg.w * Math.cos(k * PI / 2);
+    if (w < 1) return;
+    ctx.save();
+    ctx.fillStyle = k < 0.5 ? '#e8904a' : '#c9763a';
+    ctx.fillRect(pg.x - 6 * s, pg.y - 6 * s, w + 12 * s, pg.h + 12 * s);
+    if (k < 0.5) {
+      ctx.fillStyle = '#fbfaf2'; ctx.fillRect(pg.x + w * 0.2, pg.y + pg.h * 0.2, w * 0.6, pg.h * 0.16);
+      ctx.fillStyle = '#5d5d66'; ctx.font = (18 * s + 4) + 'px ' + CM.FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(label, pg.x + w * 0.5, pg.y + pg.h * 0.28);
+      // 表紙の、小さな棒人間のシール
+      ctx.strokeStyle = '#fbfaf2'; ctx.lineWidth = 3 * s; ctx.lineCap = 'round';
+      var cx = pg.x + w * 0.5, cy = pg.y + pg.h * 0.62;
+      ctx.beginPath(); ctx.arc(cx, cy - 30 * s, 10 * s, 0, TAU); ctx.moveTo(cx, cy - 20 * s); ctx.lineTo(cx, cy + 10 * s);
+      ctx.moveTo(cx - 16 * s, cy - 18 * s); ctx.lineTo(cx, cy - 8 * s); ctx.lineTo(cx + 16 * s, cy - 18 * s);
+      ctx.moveTo(cx - 12 * s, cy + 30 * s); ctx.lineTo(cx, cy + 10 * s); ctx.lineTo(cx + 12 * s, cy + 30 * s); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function drawPage(ctx, pg, s, night) {
     ctx.save();
     ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(pg.x + 6, pg.y + 8, pg.w, pg.h);
     ctx.fillStyle = '#e8904a'; ctx.fillRect(pg.x - 6 * s, pg.y - 6 * s, pg.w + 12 * s, pg.h + 12 * s);
     ctx.fillStyle = '#fbfaf2'; ctx.fillRect(pg.x, pg.y, pg.w, pg.h);
+    if (night) { ctx.fillStyle = 'rgba(40,52,110,' + (0.22 * night) + ')'; ctx.fillRect(pg.x, pg.y, pg.w, pg.h); }
     ctx.strokeStyle = 'rgba(120,150,200,0.3)'; ctx.lineWidth = 1;
     for (var y = pg.y + 22 * s; y < pg.y + pg.h - 6 * s; y += 16 * s) { ctx.beginPath(); ctx.moveTo(pg.x + 6 * s, y); ctx.lineTo(pg.x + pg.w - 6 * s, y); ctx.stroke(); }
-    ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.beginPath(); ctx.moveTo(pg.x + pg.w / 2, pg.y); ctx.lineTo(pg.x + pg.w / 2, pg.y + pg.h); ctx.stroke();
     ctx.restore();
   }
-  function pencilCloud(ctx, x, y, w, sd, c) {
-    var pts = CM.cloudPts(x, y, w, w * 0.42, sd);
-    L(ctx, pts, pen(c || '#7aa7d6', sd, 2));
-  }
-  function pencilStar(ctx, x, y, r, sd) {
+  function pencilCloud(ctx, x, y, w, sd, c) { L(ctx, CM.cloudPts(x, y, w, w * 0.42, sd), pen(c || '#7aa7d6', sd, 2)); }
+  function pencilStar(ctx, x, y, r, sd, c) {
     var pts = [];
     for (var i = 0; i <= 10; i++) { var a = -PI / 2 + i * PI / 5, rr = i % 2 ? r * 0.45 : r; pts.push(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
-    L(ctx, pts, pen('#e0b21c', sd, 2));
+    fill(ctx, pts, c || '#e0b21c', 0.25);
+    L(ctx, pts, pen(c || '#e0b21c', sd, 2));
   }
+  function heart(ctx, x, y, h, c, sd) {
+    var pts = [x, y + h * 0.9, x - h, y - 0.05 * h, x - h * 0.8, y - h * 0.75, x - h * 0.25, y - h * 0.85, x, y - h * 0.35, x + h * 0.25, y - h * 0.85, x + h * 0.8, y - h * 0.75, x + h, y - 0.05 * h, x, y + h * 0.9];
+    fill(ctx, pts, c, 0.35); L(ctx, pts, pen(c, sd, 1.8));
+  }
+  /** リボン（題名） */
+  function drawRibbon(ctx, cx, y, w, h, text, k, s) {
+    if (k <= 0) return;
+    ctx.save();
+    ctx.translate(cx, y); ctx.scale(k, k);
+    ctx.fillStyle = '#b8323f';
+    [-1, 1].forEach(function (d) {
+      ctx.beginPath(); ctx.moveTo(d * w / 2, -h * 0.3); ctx.lineTo(d * (w / 2 + 18 * s), -h * 0.3); ctx.lineTo(d * (w / 2 + 10 * s), h * 0.15); ctx.lineTo(d * (w / 2 + 18 * s), h * 0.6); ctx.lineTo(d * w / 2, h * 0.6); ctx.fill();
+    });
+    ctx.fillStyle = '#d9414f'; ctx.fillRect(-w / 2, -h / 2, w, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(-w / 2, -h / 2, w, h * 0.35);
+    ctx.fillStyle = '#fff8e6'; ctx.font = 'bold ' + Math.round(h * 0.52) + 'px ' + CM.FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    var tw = ctx.measureText(text).width, sc = Math.min(1, (w - 16 * s) / tw);
+    ctx.scale(sc, 1); ctx.fillText(text, 0, 1);
+    ctx.restore();
+  }
+  /** はんこ（はなまる・よくがんばりました・でんせつ） */
+  function drawStamp(ctx, x, y, r, kind, k, s, t) {
+    if (k <= 0) return;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(-0.25); ctx.scale(k, k);
+    var col = kind === 'legend' ? '#d49a12' : '#d9414f';
+    if (kind === 'hanamaru') {
+      // うずまき＋花びら
+      var pts = [];
+      for (var i = 0; i <= 60; i++) { var a = i / 60 * TAU * 2.6, rr = r * 0.12 + r * 0.55 * i / 60; pts.push(Math.cos(a) * rr, Math.sin(a) * rr); }
+      L(ctx, pts, pen(col, 5, 3, 0.95));
+      for (i = 0; i < 8; i++) { var aa = i / 8 * TAU; L(ctx, oval(Math.cos(aa) * r * 0.82, Math.sin(aa) * r * 0.82, r * 0.26, r * 0.26, 12, aa - PI * 0.9, aa + PI * 0.9), pen(col, 10 + i, 3, 0.95)); }
+    } else {
+      ctx.globalAlpha = 0.9;
+      CM.chalk.circle(ctx, 0, 0, r, pen(col, 20, 3, 0.95));
+      CM.chalk.circle(ctx, 0, 0, r * 0.82, pen(col, 21, 1.6, 0.8));
+      if (kind === 'legend') pencilStar(ctx, 0, -r * 0.35, r * 0.28, 22, col);
+      var lines = kind === 'legend' ? [CM.app.i18n.t('stampLegend')] : CM.app.i18n.t('stampTried').split('|');
+      ctx.fillStyle = col; ctx.font = 'bold ' + Math.round(r * (lines.length > 1 ? 0.34 : 0.42)) + 'px ' + CM.FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      lines.forEach(function (ln, i) {
+        var w = ctx.measureText(ln).width, sc = Math.min(1, r * 1.5 / w);
+        ctx.save(); ctx.translate(0, (kind === 'legend' ? r * 0.25 : 0) + (i - (lines.length - 1) / 2) * r * 0.42); ctx.scale(sc, 1); ctx.fillText(ln, 0, 0); ctx.restore();
+      });
+    }
+    ctx.restore();
+  }
+  /** 紙ふぶき（ステージ全体に降る） */
+  function confetti(ctx, D, list, dt) {
+    var st = D.st;
+    list.forEach(function (c) {
+      c.y += c.vy * dt; c.x += Math.sin(c.ph + D.time * 2) * 20 * dt; c.r += c.vr * dt;
+      if (c.y > st.y + st.h + 10) { c.y = st.y - 10; c.x = st.x + Math.random() * st.w; }
+      ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.r); ctx.scale(1, Math.cos(D.time * 6 + c.ph));
+      ctx.fillStyle = c.col; ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h); ctx.restore();
+    });
+  }
+  /** 本物のえんぴつ（気持ちエンドで、ことばを書いていく） */
+  function realPencil(ctx, x, y, s) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(-0.7);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(4, -3 * s + 4, 70 * s, 8 * s);
+    ctx.fillStyle = '#f1c232'; ctx.fillRect(10 * s, -4 * s, 60 * s, 8 * s);
+    ctx.fillStyle = '#e8c9a0'; ctx.beginPath(); ctx.moveTo(10 * s, -4 * s); ctx.lineTo(0, 0); ctx.lineTo(10 * s, 4 * s); ctx.fill();
+    ctx.fillStyle = '#e0567a'; ctx.beginPath(); ctx.moveTo(3 * s, -1.2 * s); ctx.lineTo(0, 0); ctx.lineTo(3 * s, 1.2 * s); ctx.fill();
+    ctx.fillStyle = '#f2a0b5'; ctx.fillRect(66 * s, -4 * s, 8 * s, 8 * s);
+    ctx.restore();
+  }
+
   SC.ending = {
     setup: function (sc, D) {
       var st = D.st, s = D.s;
       sc.segs = [];
       sc.manX = st.x - 200; sc.restX = st.x;
-      sc.pg = { x: st.x + 16 * s, y: st.y + 44 * s, w: st.w - 32 * s, h: st.h - 60 * s };
-      sc.t = 0;
+      sc.pg = { x: st.x + 16 * s, y: st.y + 40 * s, w: st.w - 32 * s, h: st.h - 50 * s };
+      sc.t = 0; sc.played = {};
+      sc.conf = [];
+      for (var i = 0; i < 46; i++) sc.conf.push({ x: st.x + Math.random() * st.w, y: st.y - Math.random() * st.h, vy: (50 + Math.random() * 60) * s, vr: (Math.random() - 0.5) * 6, r: Math.random() * TAU, ph: Math.random() * TAU, w: (4 + Math.random() * 4) * s, h: (6 + Math.random() * 5) * s, col: RAINBOW[i % RAINBOW.length] });
+      sc.petals = [];
+      for (i = 0; i < 16; i++) sc.petals.push({ x: Math.random(), y: Math.random(), sp: 0.3 + Math.random() * 0.3, ph: Math.random() * TAU });
     },
-    update: function (sc, dt, D) { sc.t += dt; D.man.alpha = 0; },
+    update: function (sc, dt, D) {
+      var t0 = sc.t;
+      sc.t += dt; sc.dt = dt; D.man.alpha = 0;
+      var big = sc.hi || sc.no === 7;
+      function once(key, at, fn) { if (!sc.played[key] && sc.t >= at) { sc.played[key] = true; fn(); } }
+      once('open', 0.4, function () { D.sfx.play('whoosh'); });
+      [1.3, 1.7, 2.1, 2.5].forEach(function (a, i) { once('pop' + i, a, function () { D.sfx.play('pop'); }); });
+      once('ribbon', 3.0, function () { D.sfx.play(big ? 'fanfare' : 'softTune'); });
+      once('stamp', 3.9, function () { D.sfx.play(big ? 'boom' : 'thud'); D.fx.shake(big ? 6 : 3, 0.3); });
+      void t0;
+    },
     drawChalk: function (ctx, sc, D) {
       CM.chalk.text(ctx, D.T('theEnd'), D.st.x + 14, D.st.y + 22, { size: 18, align: 'left', color: COL.yellow });
     },
     drawReal: function (ctx, sc, D) {
-      var s = D.s, pg = sc.pg, t = sc.t, n = sc.no, cx = pg.x + pg.w / 2, gy = pg.y + pg.h * 0.78;
-      drawPage(ctx, pg, s);
-      // タイトル（えんぴつの字）
-      var E = CM.ENDINGS[n] || { title: { ja: '', en: '' } };
-      CM.chalk.text(ctx, D.T('endingN', { n: n }) + '  ' + CM.fillWord(E.title[(CM.app && CM.app.i18n.lang) || D.lang], sc.word), cx, pg.y + 16 * s, { size: 13 * s + 3, color: PENCIL, maxW: pg.w - 20 * s });
-      var rv = Math.min(1, t / 1.6);   // 描かれていく
+      var s = D.s, pg = sc.pg, t = sc.t, n = sc.no, cx = pg.x + pg.w / 2, st = D.st;
+      var gy = pg.y + pg.h - 62 * s, hi = sc.hi, big = hi || n === 7, lang = (CM.app && CM.app.i18n.lang) || 'ja';
+      var night = n === 2 ? ramp(t, 1.2, 1) : 0;
+      if (t > 0.4) drawPage(ctx, pg, s, night);
+      if (t < 1.2) { drawCover(ctx, pg, s, U.easeInOut(ramp(t, 0.5, 0.7)), D.T('notebookLabel')); if (t < 1.1) return; }
       ctx.save();
-      ctx.beginPath(); ctx.rect(pg.x, pg.y, pg.w * (0.15 + 0.85 * rv), pg.h); ctx.clip();
-      // 地面の線
-      L(ctx, [pg.x + 14 * s, gy, pg.x + pg.w - 14 * s, gy], pen(PENCIL, 1, 1.8, 0.7));
-      var hi = sc.hi, faint = hi ? 1 : 0.45, manS = s * (hi ? 0.9 : 0.6);
-      var anim = 'cheer', mx = cx;
+      ctx.beginPath(); ctx.rect(pg.x, pg.y, pg.w, pg.h); ctx.clip();
+      var a1 = ramp(t, 1.2, 0.6), manS = s * (hi ? 0.95 : 0.62), faint = hi ? 1 : 0.5;
+      var anim = 'cheer', mx = cx, mgy = gy;
+
+      // ---- エンディングごとの絵 ----
       if (n === 1) {
-        pencilCloud(ctx, pg.x + pg.w * 0.2, pg.y + pg.h * 0.3, 34 * s, 11);
-        pencilCloud(ctx, pg.x + pg.w * 0.78, pg.y + pg.h * 0.24, 28 * s, 12);
-        pencilStar(ctx, pg.x + pg.w * 0.5, pg.y + pg.h * 0.2, 10 * s, 13);
-        pencilStar(ctx, pg.x + pg.w * 0.62, pg.y + pg.h * 0.34, 7 * s, 14);
-        if (CM.drawBird) CM.drawBird(ctx, { x: pg.x + pg.w * 0.3, y: pg.y + pg.h * 0.5, face: 1, ph: 0, sd: 15, k: 0.9 }, s, D.time);
-      } else if (n === 2) {
-        pencilCloud(ctx, cx + 36 * s, gy - 22 * s, 38 * s, 21, '#9fb6cc');
-        anim = 'lie'; mx = cx - 30 * s;
-        CM.chalk.text(ctx, 'Zz', cx + 10 * s, gy - 70 * s, { size: 14 * s + 2, color: '#7aa7d6' });
-      } else if (n === 3) {
-        if (CM.drawMole) CM.drawMole(ctx, { x: pg.x + pg.w * 0.22, hx: pg.x + pg.w * 0.22, rise: 1, mode: 'happy', sd: 31 }, { s: s * 0.8, gy: gy, time: D.time, fx: null });
-        if (CM.drawBatFly) CM.drawBatFly(ctx, { x: pg.x + pg.w * 0.75, y: pg.y + pg.h * 0.3, face: -1, ph: 0, sd: 32, k: 1 }, { s: s, time: D.time });
-        L(ctx, oval(pg.x + pg.w * 0.8, gy + 10 * s, 26 * s, 10 * s, 16, 0, PI), pen('#a0784e', 33, 2));
-      } else if (n === 4) {
-        anim = 'lie'; mx = cx - 20 * s;
-        for (var i = 0; i < 8; i++) { ctx.save(); ctx.fillStyle = '#a0784e'; ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(cx - 40 * s + i * 11 * s, gy - 4 * s - (i % 3) * 5 * s, 2 * s, 0, TAU); ctx.fill(); ctx.restore(); }
-      } else if (n === 5 || n === 6) {
-        var ws = Math.min(46 * s, (pg.w * 0.8) / Math.max(1, U.chars(sc.word).length));
-        ctx.save(); ctx.globalAlpha = n === 5 ? 1 : 0.45;
-        CM.chalk.text(ctx, sc.word, cx, pg.y + pg.h * 0.34, { size: ws, color: '#e0567a', maxW: pg.w * 0.85 });
-        ctx.restore();
-        if (n === 5) for (var h = 0; h < 5; h++) { var ha = D.time * 1.5 + h * 1.3; CM.chalk.text(ctx, '♡', cx + Math.cos(ha) * pg.w * 0.36, pg.y + pg.h * 0.34 + Math.sin(ha * 1.3) * 26 * s, { size: 14 * s, color: '#e0567a', alpha: 0.8 }); }
-        anim = 'cheer'; mx = cx + (n === 6 ? pg.w * 0.3 : 0);
-        if (n === 6) manS = s * 0.5;
-      } else if (n === 7) {
-        var fw = sc.funnyWords || [];
-        var cols = ['#e0567a', '#3f8fd1', '#e0b21c', '#4caf6a', '#9a6bd1', '#e07a30'];
-        fw.slice(0, 12).forEach(function (w, i) {
-          var a = i / Math.min(12, fw.length) * TAU + D.time * 0.3, rx = pg.w * 0.36, ry = pg.h * 0.26;
-          CM.chalk.text(ctx, w, cx + Math.cos(a) * rx, pg.y + pg.h * 0.42 + Math.sin(a) * ry, { size: 13 * s + 3, color: cols[i % cols.length], rot: Math.sin(i) * 0.2, maxW: pg.w * 0.3 });
+        // 虹（外がわから描かれていく）
+        RAINBOW.forEach(function (c, i) {
+          var k = ramp(t, 1.2 + i * 0.1, 0.8);
+          if (k > 0) L(ctx, oval(cx, gy + 10 * s, pg.w * 0.44 - i * 7 * s, pg.h * 0.5 - i * 7 * s, 30, PI, PI + PI * k), pen(c, 30 + i, 4 * s, 0.85));
         });
+        var dx = (t * 12 * s) % (pg.w + 80 * s);
+        ctx.save(); ctx.globalAlpha = a1;
+        pencilCloud(ctx, pg.x + ((pg.w * 0.15 + dx) % (pg.w + 60 * s)) - 30 * s, pg.y + pg.h * 0.24, 30 * s, 11);
+        pencilCloud(ctx, pg.x + ((pg.w * 0.7 + dx * 0.7) % (pg.w + 60 * s)) - 30 * s, pg.y + pg.h * 0.4, 24 * s, 12);
+        [[0.2, 0.18, 7], [0.5, 0.14, 10], [0.84, 0.22, 8], [0.66, 0.3, 6]].forEach(function (p, i) { var tw = 0.8 + 0.2 * Math.sin(t * 4 + i); pencilStar(ctx, pg.x + pg.w * p[0], pg.y + pg.h * p[1], p[2] * s * tw * popK(t, 1.5 + i * 0.15), 40 + i); });
+        ctx.restore();
+        // 鳥が飛んでいく・流れ星
+        if (t > 2 && CM.drawBird) [0, 1].forEach(function (i) { var bx = pg.x + ((t * 40 * s + i * pg.w * 0.5) % (pg.w + 60 * s)) - 30 * s; CM.drawBird(ctx, { x: bx, y: pg.y + pg.h * (0.46 + i * 0.08) + Math.sin(t * 3 + i) * 6 * s, face: 1, ph: i, sd: 50 + i, k: 0.8 }, s, D.time); });
+        var sp = (t % 3.2) / 0.8;
+        if (t > 2.4 && sp < 1) L(ctx, [pg.x + pg.w * (0.9 - sp * 0.5), pg.y + pg.h * (0.08 + sp * 0.18), pg.x + pg.w * (0.98 - sp * 0.5), pg.y + pg.h * (0.04 + sp * 0.18)], pen('#e0b21c', 60, 2.4));
+      } else if (n === 2) {
+        ctx.save(); ctx.globalAlpha = a1;
+        var mx0 = pg.x + pg.w * 0.74, my0 = pg.y + pg.h * 0.4, mr = 22 * s;
+        L(ctx, oval(mx0, my0, mr, mr, 20, -PI * 0.62, PI * 0.62).concat(oval(mx0 + mr * 0.45, my0, mr * 0.78, mr * 0.86, 16, PI * 0.5, -PI * 0.5)), pen('#e0b21c', 70, 2.6));
+        [[0.2, 0.2], [0.4, 0.12], [0.55, 0.3], [0.3, 0.38]].forEach(function (p, i) { pencilStar(ctx, pg.x + pg.w * p[0], pg.y + pg.h * p[1], 5 * s * (0.7 + 0.3 * Math.sin(t * 1.5 + i)), 71 + i); });
+        pencilCloud(ctx, cx + 20 * s, gy - 10 * s, 50 * s, 21, '#9fb6cc');
+        ctx.restore();
+        anim = 'lie'; mx = cx - 10 * s; mgy = gy - 30 * s;
+        var zk = (t % 2) / 2;
+        CM.chalk.text(ctx, 'Z', mx + 20 * s + zk * 20 * s, mgy - 30 * s - zk * 30 * s, { size: (10 + zk * 8) * s, color: '#7aa7d6', alpha: 1 - zk });
+      } else if (n === 3 || n === 4) {
+        // 地面の下（土の断面と、トンネル）
+        ctx.save(); ctx.globalAlpha = a1;
+        ctx.fillStyle = 'rgba(160,120,78,0.28)'; ctx.fillRect(pg.x, gy, pg.w, pg.y + pg.h - gy);
+        var r = U.rng(3);
+        ctx.fillStyle = '#a0784e';
+        for (var i = 0; i < 24; i++) { ctx.globalAlpha = a1 * 0.5; ctx.beginPath(); ctx.arc(pg.x + r() * pg.w, gy + 6 * s + r() * (pg.y + pg.h - gy - 10 * s), (1 + r() * 2) * s, 0, TAU); ctx.fill(); }
+        ctx.restore();
+        L(ctx, [pg.x + pg.w * 0.1, gy + 24 * s].concat(bez([pg.x + pg.w * 0.1, gy + 24 * s], [pg.x + pg.w * 0.4, gy + 50 * s], [pg.x + pg.w * 0.6, gy + 10 * s], [pg.x + pg.w * 0.92, gy + 30 * s], 16)), pen('#a0784e', 80, 8 * s, 0.4 * a1));
+        // モグラ（穴から出たり入ったり）
+        [0.18, 0.82].forEach(function (f, i) {
+          var hx = pg.x + pg.w * f, rise = t > 1.6 ? U.clamp(0.5 + Math.sin(t * 1.8 + i * 2) * 1.2, 0, 1) : 0;
+          L(ctx, oval(hx, gy + 1, 20 * s, 4 * s, 14), pen('#a0784e', 90 + i, 2));
+          if (CM.drawMole && rise > 0) {
+            ctx.save(); ctx.beginPath(); ctx.rect(pg.x, pg.y, pg.w, gy - pg.y + 2); ctx.clip();
+            CM.drawMole(ctx, { x: hx, hx: hx, rise: rise, mode: 'happy', sd: 91 + i }, { s: s * 0.75, gy: gy, time: D.time });
+            ctx.restore();
+          }
+        });
+        if (n === 3) {
+          // コウモリと、宝箱（ひらいて、キラキラ）
+          if (CM.drawBatFly && t > 1.8) CM.drawBatFly(ctx, { x: pg.x + pg.w * (0.7 + 0.1 * Math.sin(t)), y: pg.y + pg.h * 0.26 + Math.sin(t * 2) * 8 * s, face: -1, ph: 0, sd: 95, k: 1 }, { s: s, time: D.time });
+          var bx = pg.x + pg.w * 0.72, bk = popK(t, 2.2);
+          if (bk > 0) {
+            ctx.save(); ctx.translate(bx, gy); ctx.scale(bk, bk);
+            var bw2 = 22 * s, bh2 = 18 * s;
+            fill(ctx, [-bw2, 0, -bw2, -bh2, bw2, -bh2, bw2, 0], '#e07a30', 0.3);
+            L(ctx, [-bw2, 0, -bw2, -bh2, bw2, -bh2, bw2, 0, -bw2, 0], pen('#e07a30', 96, 2.2));
+            L(ctx, [-bw2, -bh2, -bw2 - 4 * s, -bh2 - 14 * s, bw2 - 4 * s, -bh2 - 16 * s, bw2, -bh2], pen('#e07a30', 97, 2.2));
+            ctx.restore();
+            for (var g = 0; g < 4; g++) { var ga = t * 2 + g * 1.6; pencilStar(ctx, bx + Math.cos(ga) * 18 * s, gy - 30 * s - Math.abs(Math.sin(ga)) * 16 * s, 4 * s, 98 + g, RAINBOW[g + 1]); }
+          }
+        } else {
+          anim = 'lie'; mx = cx - 16 * s;
+          var zk2 = (t % 2) / 2;
+          CM.chalk.text(ctx, 'Z', mx + 20 * s + zk2 * 20 * s, gy - 30 * s - zk2 * 30 * s, { size: (10 + zk2 * 8) * s, color: '#7aa7d6', alpha: 1 - zk2 });
+        }
+      } else if (n === 5 || n === 6) {
+        // 書いたことばを、えんぴつが書いていく
+        var word = sc.word || '', ws = Math.min(52 * s, (pg.w * 0.82) / Math.max(1, U.chars(word).length) * 1.1), wy = pg.y + pg.h * 0.34;
+        var wk = ramp(t, 1.3, n === 5 ? 1.4 : 2.2);
+        ctx.save(); ctx.font = ws + 'px ' + CM.FONT;
+        var tw = Math.min(pg.w * 0.85, ctx.measureText(word).width), wx0 = cx - tw / 2;
+        ctx.beginPath(); ctx.rect(wx0 - 10 * s, wy - ws, (tw + 20 * s) * wk, ws * 2); ctx.clip();
+        CM.chalk.text(ctx, word, cx, wy, { size: ws, color: '#e0567a', maxW: pg.w * 0.85, alpha: n === 5 ? 1 : 0.4 });
+        ctx.restore();
+        if (wk > 0 && wk < 1) realPencil(ctx, wx0 + tw * wk, wy + ws * 0.2 + Math.sin(t * 30) * 3 * s, s);
+        if (n === 5) {
+          for (var h = 0; h < 6; h++) { var hk = ((t * 0.35 + h / 6) % 1); if (t > 2.6) heart(ctx, pg.x + pg.w * (0.1 + (h * 0.37) % 0.8), pg.y + pg.h * (0.9 - hk * 0.8), (5 + h % 3 * 2) * s, '#e0567a', 110 + h); }
+          sc.petals.forEach(function (p, i) {
+            if (t < 2.8) return;
+            var py = pg.y + ((p.y + t * p.sp * 0.25) % 1) * pg.h, px = pg.x + (p.x + Math.sin(t + p.ph) * 0.05) * pg.w;
+            ctx.save(); ctx.translate(px, py); ctx.rotate(t * 2 + p.ph); ctx.fillStyle = '#f7a8c0'; ctx.globalAlpha = 0.8;
+            ctx.beginPath(); ctx.ellipse(0, 0, 4 * s, 2.4 * s, 0, 0, TAU); ctx.fill(); ctx.restore();
+          });
+        } else {
+          mx = cx + pg.w * 0.3; manS = s * 0.5;
+        }
+      } else if (n === 7) {
+        // 旗のかざり
+        var fl = [];
+        for (var q = 0; q <= 10; q++) fl.push(pg.x + pg.w * q / 10, pg.y + 50 * s + Math.sin(q / 10 * PI) * 16 * s);
+        L(ctx, fl, pen(PENCIL, 120, 1.4, a1));
+        for (q = 0; q < 10; q++) { var fx0 = pg.x + pg.w * (q + 0.5) / 10, fy0 = pg.y + 50 * s + Math.sin((q + 0.5) / 10 * PI) * 16 * s; fill(ctx, [fx0 - 7 * s, fy0, fx0 + 7 * s, fy0, fx0, fy0 + 14 * s], RAINBOW[q % 6], 0.6 * a1); }
+        // 珍回答で書いたことばが、パレードする
+        var fw = sc.funnyWords || [];
+        fw.slice(0, 12).forEach(function (w, i) {
+          var k = (t * 0.08 + i / Math.min(12, fw.length)) % 1, a = k * TAU;
+          var px = cx + Math.cos(a) * pg.w * 0.38, py = pg.y + pg.h * 0.45 + Math.sin(a) * pg.h * 0.2 - Math.abs(Math.sin(t * 6 + i)) * 5 * s;
+          ctx.save(); ctx.globalAlpha = popK(t, 1.4 + i * 0.12) > 0 ? 1 : 0;
+          CM.chalk.text(ctx, w, px, py, { size: 13 * s + 3, color: RAINBOW[i % 6], rot: Math.sin(t * 4 + i) * 0.15, maxW: pg.w * 0.3 });
+          ctx.restore();
+        });
+        // 王冠
+        mgy = gy;
       }
-      // えんぴつの棒人間
-      var A = CM.MAN_ANIMS[anim], env = { stage: D.st, groundY: gy, cx: mx, s: manS, fixedX: mx, f: 1 };
-      var fr = A.frame(t % A.loop, env, {}, 0);
-      CM.drawMan(ctx, fr.pose, manS, D.time, { color: PENCIL, alpha: faint });
-      if (n === 6 || n === 2 || n === 4) CM.chalk.text(ctx, n === 6 ? D.T('byeBye') : '…', mx + 30 * s, gy - 90 * manS / s * 0.6 - 30 * s, { size: 12 * s + 2, color: PENCIL, alpha: 0.7 });
+
+      // ---- 地面と、えんぴつの棒人間 ----
+      L(ctx, [pg.x + 14 * s, gy, pg.x + pg.w - 14 * s, gy], pen(PENCIL, 1, 1.8, 0.7 * a1));
+      var A = CM.MAN_ANIMS[anim], env = { stage: D.st, groundY: mgy, cx: mx, s: manS, fixedX: mx, f: 1 };
+      var fr = A.frame(t % A.loop, env, {}, 0), ma = ramp(t, 1.8, 0.6) * faint;
+      if (ma > 0) {
+        var j = CM.drawMan(ctx, fr.pose, manS, D.time, { color: PENCIL, alpha: ma });
+        if (n === 7 && j) {
+          var hx = j.head[0], hy = j.head[1] - CM.BODY.head * manS;
+          var crown = [hx - 10 * manS, hy, hx - 12 * manS, hy - 14 * manS, hx - 5 * manS, hy - 7 * manS, hx, hy - 16 * manS, hx + 5 * manS, hy - 7 * manS, hx + 12 * manS, hy - 14 * manS, hx + 10 * manS, hy, hx - 10 * manS, hy];
+          fill(ctx, crown, '#e0b21c', 0.5); L(ctx, crown, pen('#d49a12', 130, 2));
+        }
+      }
+      if (n === 6) CM.chalk.text(ctx, D.T('byeBye'), mx + 30 * s, mgy - 70 * s, { size: 12 * s + 2, color: PENCIL, alpha: 0.7 * ma });
+
+      // ---- 書いたことばが流れる（下の帯）----
+      var tk = ramp(t, 4.4, 0.6);
+      if (tk > 0 && sc.helped && sc.helped.length) {
+        var ty = pg.y + pg.h - 18 * s;
+        ctx.save(); ctx.globalAlpha = tk;
+        ctx.fillStyle = 'rgba(255,248,220,0.9)'; ctx.fillRect(pg.x, ty - 13 * s, pg.w, 26 * s);
+        ctx.strokeStyle = 'rgba(224,178,28,0.7)'; ctx.lineWidth = 1.5; ctx.strokeRect(pg.x + 2, ty - 13 * s, pg.w - 4, 26 * s);
+        ctx.font = (12 * s + 3) + 'px ' + CM.FONT; ctx.textBaseline = 'middle';
+        var items = [D.T('wordsYouWrote')].concat(sc.helped), gap = 16 * s, widths = items.map(function (w) { return ctx.measureText(w).width + gap; });
+        var total = widths.reduce(function (a, b) { return a + b; }, 0), off = (t - 4.4) * 40 * s % total;
+        for (var rep = 0; rep < 3; rep++) {
+          var x = pg.x + pg.w - off + rep * total - total;
+          items.forEach(function (w, i) {
+            if (x > pg.x - 200 && x < pg.x + pg.w) { ctx.fillStyle = i === 0 ? '#b8323f' : RAINBOW[i % 6]; ctx.fillText(w, x, ty); }
+            x += widths[i];
+          });
+        }
+        ctx.restore();
+      }
       ctx.restore();
+
+      // ---- リボンの題名と、はんこ ----
+      var E = CM.ENDINGS[n] || { title: { ja: '', en: '' } };
+      var rk = t >= 3 ? U.easeBack(ramp(t, 3, 0.45)) : 0;
+      drawRibbon(ctx, pg.x + pg.w * 0.44, pg.y + 22 * s - (1 - Math.min(1, rk)) * 20 * s, pg.w * 0.74, 30 * s, D.T('endingN', { n: n }) + '  ' + CM.fillWord(E.title[lang], sc.word), rk, s);
+      var stk = t >= 3.9 ? 1 + 1.2 * (1 - ramp(t, 3.9, 0.25)) : 0;
+      if (stk > 0) drawStamp(ctx, pg.x + pg.w - 26 * s, pg.y + 28 * s, 24 * s, n === 7 ? 'legend' : hi ? 'hanamaru' : 'tried', stk, s, t);
+
+      // ---- 紙ふぶき ----
+      if (big && t > 3) confetti(ctx, D, sc.conf, sc.dt || 0.016);
+      else if (!big && t > 3) {
+        // やさしくふる、小さな光
+        for (var p = 0; p < 10; p++) { var pk = ((t * 0.12 + p / 10) % 1); CM.chalk.text(ctx, '✦', st.x + st.w * ((p * 0.37) % 1), st.y + st.h * pk, { size: 8 * s, color: COL.yellow, alpha: 0.5 * (1 - pk) }); }
+      }
     }
   };
 })(window);

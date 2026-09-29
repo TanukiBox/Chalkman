@@ -314,6 +314,7 @@
         var sc = P.D.sc;
         sc.no = n; sc.word = run.lastWord || ''; sc.route = run.route || 'sky'; sc.funnyWords = run.funnyWords.slice();
         sc.hi = meter.value >= CFG.ENDING_CHALK;
+        sc.helped = (run.helped || []).slice();
         P.state = 'ending';
         buildPad();
       });
@@ -472,6 +473,7 @@
           run.funnyWords.push(r.text);
         }
         if (r.route) run.route = r.route;
+        (run.helped = run.helped || []).push(r.text);   // 冒険を助けたことば（エンディングで流す）
         if (P.prob && P.prob.last) { run.ending = r.ending || null; run.lastWord = r.text; }
         P.stamp = { key: kind === 'success' ? 'stamp_success' : 'stamp_funny', color: kind === 'success' ? COL.green : COL.yellow, t: 0 };
         app.sfx.play(kind === 'success' ? 'cheer' : 'sparkle');
@@ -640,6 +642,7 @@
           run = { chapter: 3, q: 6, funny: 0, lastFunny: null, route: rr ? rr[1] : 'sky', words: 0, funnyWords: [] };
           run.lastWord = ww ? decodeURIComponent(ww[1]) : 'ありがとう';
           if (+me[1] === 7) run.funnyWords = ['アリ', 'すずめ', 'せんせい', 'たいこ', 'ねこ', 'おかあさん', 'ケーキ', 'よる', 'はな', 'くも'];
+          run.helped = ['でんき', 'ロープ', 'ボール', 'ひこうき', 'ケーキ', 'はしご', 'まくら', 'たいこ', 'かさ', 'けしごむ', 'かぎ', run.lastWord];
           run.funny = run.funnyWords.length;
           meter.set([2, 4, 6].indexOf(+me[1]) >= 0 ? 40 : 80);
           goEnding(+me[1]);

@@ -142,6 +142,18 @@
         S.noise({ dur: 0.03, vol: 0.12, f0: 4200, q: 3, delay: 0.18 });
         S.noise({ dur: 0.03, vol: 0.08, f0: 3800, q: 3, delay: 0.26 });
       },
+      // エンディングのファンファーレ（チョークが多い・隠し）と、やさしい曲（チョークが少ない）
+      fanfare: function () {
+        [[0, 0], [4, 0.14], [7, 0.28], [12, 0.42], [7, 0.62], [12, 0.76], [16, 0.9], [19, 1.1], [24, 1.3]].forEach(function (n) {
+          bell(note(523, n[0]), { delay: n[1], vol: 0.07, d: 0.5, r: 0.5 });
+          bell(note(262, n[0]), { delay: n[1], vol: 0.04, d: 0.4 });
+        });
+      },
+      softTune: function () {
+        [[12, 0], [7, 0.4], [9, 0.8], [4, 1.2], [5, 1.7], [4, 2.1], [2, 2.5], [0, 3.0]].forEach(function (n) {
+          bell(note(523, n[0]), { delay: n[1], vol: 0.05, d: 0.7, r: 0.7 });
+        });
+      },
       heal: function () { [0, 4, 7, 12].forEach(function (s, i) { bell(note(660, s), { delay: i * 0.06, vol: 0.05 }); }); },
       gameover: function () {
         [7, 3, 0, -5].forEach(function (s, i) {
