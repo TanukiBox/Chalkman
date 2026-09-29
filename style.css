@@ -100,6 +100,9 @@ body {
   color: rgba(243, 241, 231, 0.72);
   margin: 0;
 }
+/* 答え図鑑：前・次のあいだの問題名／「答え図鑑に登録！」 */
+.navlabel { flex: 1 1 0; min-width: 0; margin: 0; align-self: center; text-align: center; font-size: 14px; line-height: 1.3; color: #f3f1e7; }
+.new-answer { margin: 0; font-size: 13px; color: #ffe27a; }
 /* 書く場所（ここは空けておき、キャンバスにチョークの文字が書かれる） */
 .slate { flex: 0 0 64px; height: 64px; }
 /* 書く欄がせまいとき（スマホ縦）：説明文を隠して、ボタンを小さめに */

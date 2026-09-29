@@ -5,6 +5,11 @@
  *   8まいのカード。見たエンディングは自由帳のページ（名前つき）、まだのものは「？？？」。
  *   下のボタンで選ぶと、書く欄に文章（まだのときはヒント1行）が出る。
  *
+ * ■ 答え図鑑（回収画面のタブ）
+ *   問題ごとに「成功・珍回答の条件」を1つずつ数えて、見つけた答え（そのとき書いた単語）を自由帳のページに書く。
+ *   まだ見つけていない答えは「？？？」。まだ来ていない問題は、名前も「？？？」。
+ *   保存：store の answers = { 問題のid: { 条件の番号: 書いた単語 } }（問題に来ただけなら {}）
+ *
  * ■ シェア（エンディング・ゲームオーバーの画面）
  *   文章：たどりついたエンディングの名前と「一番おかしかった瞬間」（最後に起きた珍回答。なければ最後に書いた単語）
  *   画像（1200×630）：黒板に、エンディングの名前と、えんぴつの棒人間
@@ -21,6 +26,108 @@
   function lang() { return CM.app.i18n.lang; }
 
   // ------------------------------------------------------------
+  // 答え図鑑
+  // ------------------------------------------------------------
+  /** 答えになる条件（成功・珍回答）の番号 */
+  CM.answerRules = function (prob) {
+    var out = [];
+    prob.rules.forEach(function (r, i) { if (r.result === 'success' || r.result === 'funny') out.push(i); });
+    return out;
+  };
+  /** 問題のグループ（章とルート）。図鑑では、この順にならべる */
+  CM.ANSWER_GROUPS = [
+    { key: 'groupCh1', start: 1, test: function (p) { return p.chapter === 1; } },
+    { key: 'groupSky', start: 7, test: function (p) { return p.chapter === 2 && p.route === 'sky'; } },
+    { key: 'groupUnder', start: 7, test: function (p) { return p.chapter === 2 && p.route === 'under'; } },
+    { key: 'groupCh3', start: 14, test: function (p) { return p.chapter === 3; } }
+  ];
+  /** 図鑑にならべる問題（{ p, no: 全20問の何問目か, g: グループの番号 }） */
+  CM.answerList = function () {
+    var out = [];
+    CM.ANSWER_GROUPS.forEach(function (g, gi) {
+      CM.PROBLEMS.filter(g.test).forEach(function (p, i) { out.push({ p: p, no: g.start + i, g: gi }); });
+    });
+    return out;
+  };
+  /** 見つけた数：prob を渡すとその問題だけ、なければ全部 */
+  CM.answerCount = function (prob) {
+    var A = CM.getAnswers ? CM.getAnswers() : {}, f = 0, t = 0;
+    (prob ? [prob] : CM.PROBLEMS).forEach(function (p) {
+      var got = A[p.id] || {};
+      CM.answerRules(p).forEach(function (i) { t++; if (got[i] !== undefined) f++; });
+    });
+    return { f: f, t: t };
+  };
+  /** 条件の名前（「光る」「人」など） */
+  CM.ruleLabel = function (rule) {
+    var lg = lang();
+    if (rule.tag) return T('tag_' + rule.tag);
+    if (rule.sub) return (CM.DICT_SUBS[rule.sub] || {})[lg] || rule.sub;
+    if (rule.cat) return (CM.DICT_CATS[rule.cat] || {})[lg] || rule.cat;
+    if (rule.word) {
+      var w = String(rule.word).split('/')[0], e = CM.lookupWord(w);
+      return lg === 'en' && e && e.en[0] ? e.en[0] : w;
+    }
+    return T('ruleAny');
+  };
+
+  /** 図鑑の1ページ（自由帳）を描く */
+  function drawAnswerPage(ctx, sc, D) {
+    var st = D.st, x = st.x + 14, y = st.y + 44, w = st.w - 28, h = st.h - 56;
+    var list = CM.answerList(), it = list[Math.max(0, Math.min(list.length - 1, sc.pi || 0))], p = it.p;
+    var A = CM.getAnswers(), got = A[p.id], seen = got !== undefined;
+    got = got || {};
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(x + 4, y + 5, w, h);
+    ctx.fillStyle = '#e8904a'; ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
+    ctx.fillStyle = '#fbfaf2'; ctx.fillRect(x, y, w, h);
+    // 罫線と、左の赤い線
+    ctx.strokeStyle = 'rgba(120,150,200,0.3)'; ctx.lineWidth = 1;
+    for (var ly = y + 22; ly < y + h - 4; ly += 18) { ctx.beginPath(); ctx.moveTo(x + 4, ly); ctx.lineTo(x + w - 4, ly); ctx.stroke(); }
+    ctx.strokeStyle = 'rgba(217,65,79,0.35)'; ctx.beginPath(); ctx.moveTo(x + 30, y + 2); ctx.lineTo(x + 30, y + h - 2); ctx.stroke();
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    function fit(str, px, maxW, font) {
+      ctx.font = font; var tw = ctx.measureText(str).width, k = Math.min(1, maxW / Math.max(1, tw));
+      ctx.save(); ctx.translate(px, 0); ctx.scale(k, 1); ctx.fillText(str, 0, 0); ctx.restore();
+    }
+    // 見出し：何問目・グループ・名前
+    var cnt = CM.answerCount(p), lg = lang(), z = Math.max(1, Math.min(1.4, h / 480));   // 大きな画面では、字も大きく
+    ctx.save(); ctx.translate(0, y + 18 * z);
+    ctx.fillStyle = '#b8323f'; fit(T('qLabel', { n: it.no }) + '　' + T(CM.ANSWER_GROUPS[it.g].key), x + 38, w - 48, 'bold ' + Math.round(13 * z) + 'px ' + CM.FONT);
+    ctx.restore();
+    ctx.save(); ctx.translate(0, y + 42 * z);
+    ctx.fillStyle = '#35353f'; fit(seen ? p.title[lg] : '？？？', x + 38, w - 48, 'bold ' + Math.round(19 * z) + 'px ' + CM.FONT);
+    ctx.restore();
+    ctx.save(); ctx.translate(0, y + 66 * z);
+    ctx.fillStyle = seen ? '#b8323f' : '#8a8a95'; fit(seen ? T('answersFound', cnt) : T('answersNotYet'), x + 38, w - 48, Math.round(14 * z) + 'px ' + CM.FONT);
+    ctx.restore();
+    // 答えの行
+    var idx = CM.answerRules(p), top = y + 86 * z, rh = Math.min(40 * z, (y + h - 10 - top) / Math.max(1, idx.length));
+    idx.forEach(function (ri, k) {
+      var rule = p.rules[ri], cy = top + rh * (k + 0.5), word = got[ri];
+      ctx.save(); ctx.translate(0, cy);
+      if (word !== undefined) {
+        var funny = rule.result === 'funny';
+        // しるし：成功＝赤い○、珍回答＝オレンジの★
+        ctx.fillStyle = funny ? '#e8904a' : '#d9414f'; ctx.font = 'bold 16px ' + CM.FONT; ctx.textAlign = 'center';
+        ctx.fillText(funny ? '★' : '○', x + 17, 1);
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#2f3a5a'; fit(word, x + 38, w * 0.52, Math.round(Math.min(20 * z, rh * 0.55)) + 'px ' + CM.FONT);
+        ctx.fillStyle = '#7a7a86'; ctx.textAlign = 'right'; ctx.font = Math.round(12 * z) + 'px ' + CM.FONT;
+        var lab = CM.ruleLabel(rule), lw = ctx.measureText(lab).width, lk = Math.min(1, (w * 0.36) / Math.max(1, lw));
+        ctx.save(); ctx.translate(x + w - 8, 0); ctx.scale(lk, 1); ctx.fillText(lab, 0, 0); ctx.restore();
+      } else {
+        ctx.fillStyle = '#b0b0ba'; ctx.font = 'bold 16px ' + CM.FONT; ctx.textAlign = 'center';
+        ctx.fillText('・', x + 17, 1);
+        ctx.textAlign = 'left'; ctx.font = Math.round(Math.min(18 * z, rh * 0.5)) + 'px ' + CM.FONT;
+        ctx.fillText('？？？', x + 38, 0);
+      }
+      ctx.restore();
+    });
+    ctx.restore();
+  }
+
+  // ------------------------------------------------------------
   // エンディング回収画面
   // ------------------------------------------------------------
   SC.collection = {
@@ -28,6 +135,7 @@
       sc.segs = [];
       sc.manX = D.st.x - 300; sc.restX = D.st.x;
       sc.sel = 0; sc.t = 0;
+      sc.mode = 'endings'; sc.pi = 0;   // mode：'endings'＝エンディング／'answers'＝答え図鑑
     },
     update: function (sc, dt, D) { sc.t += dt; D.man.alpha = 0; },
     /** カードの位置（2列×4段） */
@@ -38,6 +146,10 @@
       return list;
     },
     drawChalk: function (ctx, sc, D) {
+      if (sc.mode === 'answers') {
+        CM.chalk.text(ctx, T('answersTitle', CM.answerCount()), D.st.x + 14, D.st.y + 22, { size: 18, align: 'left', color: COL.yellow, maxW: D.st.w - 192 });
+        return;
+      }
       var seen = CM.getSeenEndings(), cnt = Object.keys(seen).length;
       CM.chalk.text(ctx, T('collectionTitle', { n: cnt }), D.st.x + 14, D.st.y + 22, { size: 18, align: 'left', color: COL.yellow, maxW: D.st.w - 192 });
       SC.collection.cards(D).forEach(function (c) {
@@ -53,6 +165,7 @@
       });
     },
     drawReal: function (ctx, sc, D) {
+      if (sc.mode === 'answers') { drawAnswerPage(ctx, sc, D); return; }
       var seen = CM.getSeenEndings();
       SC.collection.cards(D).forEach(function (c) {
         if (seen[c.n] === undefined) return;

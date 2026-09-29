@@ -193,6 +193,18 @@
     function savedRun() { var r = store.get('run', null); return r && r.chapter ? r : null; }
     function seeEnding(n, word) { var e = store.get('endings', {}); e[n] = word || ''; store.set('endings', e); }
     CM.getSeenEndings = function () { return store.get('endings', {}); };
+    // 答え図鑑：{ 問題のid: { 条件の番号: 書いた単語 } }（来ただけの問題は {}）
+    CM.getAnswers = function () { return store.get('answers', {}); };
+    function markSeen(prob) { var a = CM.getAnswers(); if (!a[prob.id]) { a[prob.id] = {}; store.set('answers', a); } }
+    /** 見つけた答えを図鑑に書く。はじめて見つけたなら true */
+    function addAnswer(prob, rule, word) {
+      var i = prob && rule ? prob.rules.indexOf(rule) : -1;
+      if (i < 0) return false;
+      var a = CM.getAnswers(), got = a[prob.id] = a[prob.id] || {};
+      if (got[i] !== undefined) return false;
+      got[i] = word; store.set('answers', a);
+      return true;
+    }
     CM.getStats = stats;
     // ステージの中の粉や音の文字（カメラといっしょに動く）
     var stageFx = CM.createFx();
@@ -307,6 +319,7 @@
       saveRun();
       transitionTo(how || 'scroll', function (scrolling) {
         setScene(list[i].scene, list[i], { walkIn: !!scrolling });
+        markSeen(list[i]);
         P.state = 'input'; P.msg = ''; P.result = null;
         buildPad();
       });
@@ -526,6 +539,7 @@
         if (r.route) run.route = r.route;
         (run.helped = run.helped || []).push(r.text);   // 冒険を助けたことば（エンディングで流す）
         if (P.prob && P.prob.last) { run.ending = r.ending || null; run.lastWord = r.text; }
+        P.newAnswer = addAnswer(P.prob, r.rule, r.text);
         P.stamp = { key: kind === 'success' ? 'stamp_success' : 'stamp_funny', color: kind === 'success' ? COL.green : COL.yellow, t: 0 };
         app.sfx.play(kind === 'success' ? 'cheer' : 'sparkle');
         P.state = 'result';
@@ -638,6 +652,27 @@
       else bgm.play('classroom');
     }
 
+    /** 答え図鑑の書く欄：グループ（章・ルート）と、前・次 */
+    function buildAnswersPad(csc) {
+      var list = CM.answerList(), A = CM.getAnswers();
+      csc.pi = Math.max(0, Math.min(list.length - 1, csc.pi || 0));
+      var it = list[csc.pi];
+      var groups = el('div', 'tabs probs');
+      CM.ANSWER_GROUPS.forEach(function (g, gi) {
+        var first = -1;
+        for (var i = 0; i < list.length; i++) if (list[i].g === gi) { first = i; break; }
+        groups.appendChild(btn(T(g.key), 'small' + (it.g === gi ? ' on' : ''), function () { app.sfx.play('ui'); csc.pi = first; buildPad(); }));
+      });
+      padEl.appendChild(groups);
+      var nav = el('div', 'row');
+      var prev = btn('◀', 'small', function () { app.sfx.play('ui'); csc.pi = (csc.pi - 1 + list.length) % list.length; buildPad(); });
+      var next = btn('▶', 'small', function () { app.sfx.play('ui'); csc.pi = (csc.pi + 1) % list.length; buildPad(); });
+      var c = CM.answerCount(it.p), seen = A[it.p.id] !== undefined;
+      var mid = el('p', 'navlabel', T('qLabel', { n: it.no }) + '　' + (seen ? it.p.title[app.i18n.lang] + '　' + c.f + ' / ' + c.t : '？？？'));
+      nav.appendChild(prev); nav.appendChild(mid); nav.appendChild(next);
+      padEl.appendChild(nav);
+    }
+
     function buildPad() {
       buildHud();
       updateMusic();
@@ -657,7 +692,7 @@
         } else {
           padEl.appendChild(btn(T('start'), 'big', function () { app.sfx.play('ui'); newGame(); }));
         }
-        padEl.appendChild(btn(T('collection', { n: Object.keys(CM.getSeenEndings()).length }), '', function () { app.sfx.play('ui'); openCollection(); }));
+        padEl.appendChild(btn(T('collection'), '', function () { app.sfx.play('ui'); openCollection(); }));
         // BGM だけ消す（効果音は鳴る）
         padEl.appendChild(btn(app.bgm.enabled ? T('bgmOn') : T('bgmOff'), 'small' + (app.bgm.enabled ? ' on' : ''), function () {
           app.bgm.enabled = !app.bgm.enabled; app.sfx.play('ui'); buildPad();
@@ -681,6 +716,7 @@
           var msg = CM.fillWord(r.reaction[app.i18n.lang], r.text);
           if (kind === 'fail' && P.prob.failAfter) msg += P.prob.failAfter[app.i18n.lang];
           padEl.appendChild(el('p', 'rmsg big', msg));
+          if ((kind === 'success' || kind === 'funny') && P.newAnswer) padEl.appendChild(el('p', 'new-answer kb-hide', T('newAnswer', CM.answerCount(P.prob))));
           if (kind === 'success' || kind === 'funny') padEl.appendChild(btn(T(P.prob.last ? 'toEnding' : 'next'), 'big', function () { app.sfx.play('ui'); nextProblem(); }));
           else padEl.appendChild(btn(T('retryBtn'), 'big', function () { app.sfx.play('ui'); retry(); }));
         } else {
@@ -708,7 +744,19 @@
         padEl.appendChild(btn(T('playAgain'), '', function () { app.sfx.play('ui'); newGame(); }));
         padEl.appendChild(btn(T('toTitle'), 'small', function () { app.sfx.play('ui'); toTitle(); }));
       } else if (st === 'collection') {
-        var seen = CM.getSeenEndings(), sel = P.D.sc.sel, ss = stats(), lg = app.i18n.lang;
+        var seen = CM.getSeenEndings(), sel = P.D.sc.sel, ss = stats(), lg = app.i18n.lang, csc = P.D.sc;
+        // タブ：エンディング／答え図鑑
+        var tabs = el('div', 'tabs');
+        [['endings', 'tabEndings'], ['answers', 'tabAnswers']].forEach(function (d) {
+          tabs.appendChild(btn(T(d[1]), 'small' + (csc.mode === d[0] ? ' on' : ''), function () { app.sfx.play('ui'); csc.mode = d[0]; buildPad(); }));
+        });
+        padEl.appendChild(tabs);
+        if (csc.mode === 'answers') {
+          buildAnswersPad(csc);
+          padEl.appendChild(btn(T('toTitle'), 'small', function () { app.sfx.play('ui'); toTitle(); }));
+          app.relayoutDom();
+          return;
+        }
         padEl.appendChild(el('p', 'note kb-hide', T('statsLine', { e: Object.keys(seen).length, w: ss.words || 0, f: ss.funny || 0 })));
         var grid = el('div', 'tabs probs');
         for (var ci = 1; ci <= 8; ci++) (function (n) {
