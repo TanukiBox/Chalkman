@@ -632,13 +632,15 @@
     },
     drawReal: function (ctx, sc, D) {
       var s = D.s, pg = sc.pg, t = sc.t, n = sc.no, cx = pg.x + pg.w / 2, st = D.st;
-      var gy = pg.y + pg.h - 62 * s, hi = sc.hi, big = hi || n === 7, lang = (CM.app && CM.app.i18n.lang) || 'ja';
+      // 上はリボン、下は流れる帯。そのあいだに絵を描く（ページが低い画面では、棒人間を小さくする）
+      var gy = pg.y + pg.h - Math.max(40 * s, Math.min(62 * s, pg.h * 0.2)), top = pg.y + 44 * s, room = gy - top, hi = sc.hi, big = hi || n === 7, lang = (CM.app && CM.app.i18n.lang) || 'ja';
       var night = n === 2 ? ramp(t, 1.2, 1) : 0;
       if (t > 0.4) drawPage(ctx, pg, s, night);
       if (t < 1.2) { drawCover(ctx, pg, s, U.easeInOut(ramp(t, 0.5, 0.7)), D.T('notebookLabel')); if (t < 1.1) return; }
       ctx.save();
       ctx.beginPath(); ctx.rect(pg.x, pg.y, pg.w, pg.h); ctx.clip();
-      var a1 = ramp(t, 1.2, 0.6), manS = s * (hi ? 0.95 : 0.62), faint = hi ? 1 : 0.5;
+      // 棒人間の高さ（手を上げてジャンプ）はだいたい 150。王冠をかぶると +16
+      var a1 = ramp(t, 1.2, 0.6), manS = Math.min(s * (hi ? 0.95 : 0.62), room / (n === 7 ? 168 : 152)), faint = hi ? 1 : 0.5;
       var anim = 'cheer', mx = cx, mgy = gy;
 
       // ---- エンディングごとの絵 ----
@@ -689,7 +691,7 @@
         });
         if (n === 3) {
           // コウモリと、宝箱（ひらいて、キラキラ）
-          if (CM.drawBatFly && t > 1.8) CM.drawBatFly(ctx, { x: pg.x + pg.w * (0.7 + 0.1 * Math.sin(t)), y: pg.y + pg.h * 0.26 + Math.sin(t * 2) * 8 * s, face: -1, ph: 0, sd: 95, k: 1 }, { s: s, time: D.time });
+          if (CM.drawBatFly && t > 1.8) CM.drawBatFly(ctx, { x: pg.x + pg.w * (0.7 + 0.1 * Math.sin(t)), y: top + room * 0.3 + Math.sin(t * 2) * 8 * s, face: -1, ph: 0, sd: 95, k: 1 }, { s: s, time: D.time });
           var bx = pg.x + pg.w * 0.72, bk = popK(t, 2.2);
           if (bk > 0) {
             ctx.save(); ctx.translate(bx, gy); ctx.scale(bk, bk);
@@ -707,7 +709,9 @@
         }
       } else if (n === 5 || n === 6) {
         // 書いたことばを、えんぴつが書いていく
-        var word = sc.word || '', ws = Math.min(52 * s, (pg.w * 0.82) / Math.max(1, U.chars(word).length) * 1.1), wy = pg.y + pg.h * 0.34;
+        var word = sc.word || '', ws = Math.min(52 * s, (pg.w * 0.82) / Math.max(1, U.chars(word).length) * 1.1, room * 0.34), wy = top + ws * 0.55;
+        // ことばの下に、棒人間が入るように
+        manS = Math.min(manS, (gy - (wy + ws * 0.6) - 4 * s) / 152);
         var wk = ramp(t, 1.3, n === 5 ? 1.4 : 2.2);
         ctx.save(); ctx.font = ws + 'px ' + CM.FONT;
         var tw = Math.min(pg.w * 0.85, ctx.measureText(word).width), wx0 = cx - tw / 2;
@@ -724,7 +728,7 @@
             ctx.beginPath(); ctx.ellipse(0, 0, 4 * s, 2.4 * s, 0, 0, TAU); ctx.fill(); ctx.restore();
           });
         } else {
-          mx = cx + pg.w * 0.3; manS = s * 0.5;
+          mx = cx + pg.w * 0.3; manS = Math.min(manS, s * 0.5);
         }
       } else if (n === 7) {
         // 旗のかざり
