@@ -220,7 +220,7 @@
         sc.manX = X(D, 0.12); sc.restX = X(D, 0.28);
         // 犬の落書き（絵）。hw＝体の半分の幅（演出で、そばに寄るときに使う）
         var ds = D.s * 1.15;
-        sc.dog = { x: X(D, 0.7), hop: 0, mode: 'bark', t: 0, alpha: 1, face: -1, tail: 0, ds: ds, hw: 30 * ds };
+        sc.dog = { x: X(D, 0.7), hop: 0, mode: 'bark', t: 0, alpha: 1, face: -1, tail: 0, ds: ds, hw: 52 * ds };
       },
       update: function (sc, dt, D) {
         var d = sc.dog;
@@ -338,55 +338,82 @@
   }
   CM.drawDiagram = drawDiagram;
 
-  /** 犬の落書き（チョークの絵）。d.face＝向き（-1 で左向き） */
+  /** なめらかな曲線（3次ベジェ）を点の列にする */
+  function bez(p0, p1, p2, p3, n) {
+    var out = [];
+    for (var i = 0; i <= n; i++) {
+      var t = i / n, u = 1 - t;
+      out.push(u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0],
+               u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]);
+    }
+    return out;
+  }
+
+  /**
+   * 犬の落書き（チョークの絵）。右向きで描いて、d.face が -1 なら左右反転する。
+   * 足もとが (d.x, 地面)。大きさは d.ds。
+   */
   function drawDog(ctx, d, D) {
     if (d.alpha <= 0) return;
-    var s = d.ds, f = d.face, seed = Math.floor(D.time * 7);
-    var color = d.mode === 'happy' || d.mode === 'play' ? COL.pink : COL.orange;
-    var gy = D.gy, by = gy - 22 * s - d.hop;              // 胴のまん中の高さ
-    var run = d.mode === 'run' || d.mode === 'play' ? Math.sin(D.time * 25) : 0;
-    var o = { w: 2.4 * s, color: color, alpha: d.alpha };
-    function L(pts, k) { o.seed = seed + k; CM.chalk.line(ctx, pts, o); }
-    var x = d.x;
-    // 胴（横長の丸）
-    var pts = [];
-    for (var i = 0; i <= 16; i++) { var a = i / 16 * TAU; pts.push(x + Math.cos(a) * 26 * s, by + Math.sin(a) * 11 * s); }
-    L(pts, 1);
-    // 足（4本）
-    [-18, -8, 8, 18].forEach(function (lx, k) {
-      var sw = (k % 2 ? 1 : -1) * run * 7 * s, eat = d.mode === 'eat' ? 0 : 0;
-      L([x + lx * s, by + 8 * s, x + lx * s + sw, gy - d.hop * 0 + eat], 10 + k);
-    });
-    // しっぽ（うしろ側で、ふりふり）
-    var tx = x - f * 25 * s, wag = Math.sin(d.tail) * 0.8;
-    L([tx, by - 4 * s, tx - f * 8 * s, by - 14 * s + wag * 5 * s, tx - f * 12 * s + wag * 6 * s, by - 22 * s], 20);
-    // 頭（前側）
-    var eat2 = d.mode === 'eat' ? 12 * s : 0;
-    var hx = x + f * 28 * s, hy = by - 16 * s + eat2;
-    CM.chalk.circle(ctx, hx, hy, 12 * s, { w: 2.4 * s, color: color, alpha: d.alpha, seed: seed + 30 });
-    // 耳（たれ耳）
-    L([hx - f * 4 * s, hy - 10 * s, hx - f * 12 * s, hy - 2 * s, hx - f * 9 * s, hy + 6 * s], 31);
-    // 目・鼻・口
+    var s = d.ds, seed = Math.floor(D.time * 7);
+    var happy = d.mode === 'happy' || d.mode === 'play';
+    var main = COL.orange, spot = COL.chalk;
+    var run = d.mode === 'run' || d.mode === 'play' ? Math.sin(D.time * 22) : 0;
+    var barkOpen = d.mode === 'bark' && (d.t % 1.3) < 0.35;
+    var head = d.mode === 'eat' ? 10 : 0;               // 食べているときは頭を下げる
     ctx.save();
-    ctx.globalAlpha = d.alpha;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    if (d.mode === 'happy' || d.mode === 'play') {
-      ctx.restore();
-      L([hx + f * 1 * s, hy - 3 * s, hx + f * 4 * s, hy - 6 * s, hx + f * 7 * s, hy - 3 * s], 32);
+    ctx.translate(d.x, D.gy - d.hop);
+    ctx.scale(d.face * s, s);
+    ctx.globalAlpha *= d.alpha;
+    function L(pts, k, c, w) { CM.chalk.line(ctx, pts, { w: w || 2.6, color: c || main, seed: seed + k, wob: 0.5 }); }
+    // 胴（まるいお豆の形）
+    L(bez([-24, -30], [-26, -46], [14, -46], [18, -34], 10), 1);
+    L(bez([18, -34], [22, -24], [18, -18], [8, -18], 6), 2);
+    L(bez([8, -18], [-4, -16], [-18, -16], [-24, -20], 6), 3);
+    L(bez([-24, -20], [-30, -24], [-30, -28], [-24, -30], 4), 4);
+    // ぶち
+    L(bez([-12, -38], [-4, -40], [-2, -30], [-10, -30], 6).concat(bez([-10, -30], [-16, -30], [-18, -36], [-12, -38], 5)), 5, spot, 2);
+    // 足（4本。走るときは前後にふる）
+    [[-18, 1], [-9, -1], [6, 1], [13, -1]].forEach(function (lg, k) {
+      var sw = lg[1] * run * 5;
+      L([lg[0], -18, lg[0] + sw * 0.5, -9, lg[0] + sw, 0], 10 + k);
+      L([lg[0] + sw - 1, 0, lg[0] + sw + 4, 0], 14 + k, main, 2.2);   // 足先
+    });
+    // しっぽ（くるん。うれしいとよくふる）
+    var wag = Math.sin(d.tail) * (happy ? 8 : 4);
+    L(bez([-24, -30], [-34, -34], [-36 + wag, -44], [-30 + wag, -50], 8), 20);
+    // 首輪
+    L([15, -42, 22, -33], 21, COL.red, 3);
+    // 頭（まるい頭に短い鼻づら。たれ耳）
+    ctx.save();
+    ctx.translate(0, head);
+    // たれ耳（うしろ側。うすくぬる）
+    var ear = bez([28, -66], [16, -70], [10, -56], [18, -46], 8).concat(bez([18, -46], [23, -47], [26, -56], [30, -63], 6));
+    ctx.save(); ctx.globalAlpha *= 0.35; ctx.fillStyle = main; ctx.beginPath(); ctx.moveTo(ear[0], ear[1]);
+    for (var ei = 2; ei < ear.length; ei += 2) ctx.lineTo(ear[ei], ear[ei + 1]);
+    ctx.closePath(); ctx.fill(); ctx.restore();
+    L(bez([22, -46], [14, -58], [24, -71], [34, -69], 10), 30);            // 頭のうしろ〜上
+    L(bez([34, -69], [42, -68], [45, -61], [44, -57], 6), 31);             // おでこ
+    L(bez([44, -57], [50, -58], [55, -54], [53, -49], 6), 32);             // 鼻づらの上
+    L(bez([53, -49], [51, -45], [47, -45], [43, -46], 5), 33);             // 鼻の下
+    if (barkOpen) {
+      L([50, -46, 49, -38, 41, -42], 37);                                  // ワン！ と口をあける
+      L(bez([41, -42], [36, -40], [28, -40], [22, -46], 6), 34);
     } else {
-      ctx.arc(hx + f * 4 * s, hy - 3 * s, 1.8 * s, 0, TAU);
-      ctx.arc(hx + f * 12 * s, hy + 1 * s, 2.2 * s, 0, TAU);
-      ctx.fill();
-      ctx.restore();
+      L(bez([43, -46], [38, -41], [30, -40], [22, -46], 6), 34);           // あご〜首
+      if (happy) L(bez([46, -45], [48, -39], [44, -38], [44, -44], 5), 38, COL.pink, 2.2);  // べろ
     }
-    if (d.mode === 'bark' && (d.t % 1.3) < 0.35) {
-      L([hx + f * 6 * s, hy + 5 * s, hx + f * 13 * s, hy + 9 * s, hx + f * 6 * s, hy + 9 * s], 33);   // 口を開けて吠える
-    } else if (d.mode === 'eat') {
-      L([hx + f * 5 * s, hy + 6 * s, hx + f * 11 * s, hy + 6 * s], 34);
+    L(ear, 35, main, 2.4);
+    // 目・鼻
+    ctx.fillStyle = main;
+    if (happy) {
+      L([35, -58, 38, -61, 41, -58], 36, main, 2);
     } else {
-      L([hx + f * 5 * s, hy + 6 * s, hx + f * 9 * s, hy + 8 * s, hx + f * 12 * s, hy + 6 * s], 35);
+      ctx.beginPath(); ctx.arc(38, -58, 2.4, 0, TAU); ctx.fill();
     }
+    ctx.beginPath(); ctx.ellipse ? ctx.ellipse(53, -52, 3.4, 2.6, 0, 0, TAU) : ctx.arc(53, -52, 3, 0, TAU); ctx.fill();
+    ctx.restore();
+    ctx.restore();
   }
 
   // ------------------------------------------------------------
@@ -424,15 +451,16 @@
     var s = D.s, o = function (sd, al) { return { w: 2.4, alpha: al || 0.9, seed: sd }; };
     CM.chalk.line(ctx, [b.x, b.gy, b.x, b.top, b.x + b.w, b.top, b.x + b.w, b.gy], o(1));
     // 窓（格子）
-    var rows = Math.floor((b.gy - b.top) / (34 * s)), cols = 3;
+    var rows = Math.floor((b.gy - b.top) / (34 * s)), cols = Math.max(3, Math.floor(b.w / (44 * s)));
+    var cw = b.w / cols;
     for (var r = 0; r < rows - 1; r++) {
       for (var c = 0; c < cols; c++) {
-        var wx = b.x + b.w * (0.14 + c * 0.3), wy = b.top + 22 * s + r * 34 * s;
-        CM.chalk.line(ctx, [wx, wy, wx + b.w * 0.16, wy, wx + b.w * 0.16, wy + 16 * s, wx, wy + 16 * s, wx, wy], { w: 1.6, alpha: 0.55, seed: r * 7 + c });
+        var wx = b.x + cw * (c + 0.3), wy = b.top + 22 * s + r * 34 * s;
+        CM.chalk.line(ctx, [wx, wy, wx + cw * 0.4, wy, wx + cw * 0.4, wy + 16 * s, wx, wy + 16 * s, wx, wy], { w: 1.6, alpha: 0.55, seed: r * 7 + c });
       }
     }
     // アンテナ
-    var ax = b.x + b.w * 0.8;
+    var ax = b.x + b.w * 0.25;
     CM.chalk.line(ctx, [ax, b.top, ax, b.top - 40 * s], o(40));
     CM.chalk.line(ctx, [ax - 8 * s, b.top - 26 * s, ax + 8 * s, b.top - 26 * s], o(41, 0.7));
     CM.chalk.circle(ctx, ax, b.top - 44 * s, 4 * s, { w: 2, color: COL.red, seed: 42 });
@@ -525,13 +553,14 @@
       var H = st.h * 1.3;                                   // ビルの高さ
       sc.floorY = D.gy;                                     // 下の地面
       sc.gy = D.gy - H;                                     // 屋上（棒人間が立つ高さ）
-      sc.bld = { x: st.x + st.w * 0.06, w: st.w * 0.46, top: sc.gy, gy: sc.floorY };
+      // 屋上は画面の左の外から続いている（歩いて入ってくる距離と、ビルの大きさが合うように）
+      sc.bld = { x: st.x - st.w * 0.7, w: st.w * 1.25, top: sc.gy, gy: sc.floorY };
       sc.edgeX = sc.bld.x + sc.bld.w;
       sc.segs = [
         { x0: sc.bld.x, x1: sc.edgeX, y: sc.gy, openR: true },
         { x0: st.x - st.w, x1: st.x + st.w * 2.5, y: sc.floorY }
       ];
-      sc.manX = sc.bld.x + sc.bld.w * 0.28; sc.restX = sc.bld.x + sc.bld.w * 0.7;
+      sc.manX = st.x + st.w * 0.2; sc.restX = st.x + st.w * 0.4;
       sc.landX = sc.edgeX + st.w * 0.32;
       // カメラ：寄り（屋上だけ）と、引き（ビル全体と地面）
       sc.camIn = { cx: st.x + st.w / 2, cy: sc.gy - st.h * 0.3, z: 1 };

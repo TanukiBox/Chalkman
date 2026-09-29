@@ -57,13 +57,34 @@
   CM.TOTAL_PROBLEMS = 20;   // 全部で何問か（黒板の地図に使う）
 
   CM.PROBLEMS = [
-    // 1問目：高いビルの落書きの屋上（はじめは寄りの画。カメラを引いて高さを見せる）
+    // 1問目：真っ暗で見えない（日直が電気を消して帰った）
     {
-      id: 'c1q1', chapter: 1, scene: 'tower',
+      id: 'c1q1', chapter: 1, scene: 'dark',
+      title: { ja: '真っ暗で見えない', en: 'Lights out' },
+      text: {
+        ja: '動き出したとたん、日直が教室の電気を消して帰ってしまった。黒板の上は真っ暗で、前がまったく見えない！',
+        en: 'Just as the stickman started moving, the class monitor switched off the lights and went home. The board is pitch black!'
+      },
+      rules: [
+        { tag: 'glow', result: 'success', act: 'light',
+          ja: '「{w}」がピカッと光って、道が見えた！',
+          en: 'The {w} lit up and showed the way!' },
+        { tag: 'hot', result: 'success', act: 'torch',
+          ja: '「{w}」を高くかかげると、赤く光ってあたりを照らした！',
+          en: 'Held the {w} up high. It glowed red and lit up the way!' },
+        { tag: 'sound', result: 'funny', act: 'echo',
+          ja: '「{w}」の音がこだまして、なんとなく道がわかった！',
+          en: 'The {w} echoed around, and the stickman could sort of hear the way!' }
+      ]
+    },
+
+    // 2問目：高いビルの落書きの屋上（はじめは寄りの画。カメラを引いて高さを見せる）
+    {
+      id: 'c1q2', chapter: 1, scene: 'tower',
       title: { ja: '高いビルのてっぺん', en: 'Top of a tall building' },
       text: {
-        ja: '棒人間が描かれていたのは、だれかが落書きした高〜いビルの屋上！ 地面まで、無事に降りたい。',
-        en: 'The stickman was doodled on the roof of a VERY tall building! It needs to get safely down to the ground.'
+        ja: '明るくなった道を進んでいくと…ここは、だれかが落書きした高〜いビルの屋上！ 地面まで、無事に降りたい。',
+        en: 'Following the path, the stickman ended up on the roof of someone\'s doodle of a VERY tall building! It needs to get safely down to the ground.'
       },
       rules: [
         { tag: 'edible', result: 'funny', act: 'plungeFall',
@@ -85,9 +106,9 @@
       failAfter: { act: 'tumble', ja: '…そのとき足をすべらせて、下までまっさかさま。ドテッ！', en: '...Then the stickman slipped off the edge and fell all the way down. THUD!' }
     },
 
-    // 2問目：吠える犬の落書き（絵）
+    // 3問目：吠える犬の落書き（絵）
     {
-      id: 'c1q2', chapter: 1, scene: 'dog',
+      id: 'c1q3', chapter: 1, scene: 'dog',
       title: { ja: '吠える犬の落書き', en: 'The barking dog doodle' },
       text: {
         ja: 'だれかが描いた犬の落書きが動き出して、道をふさいでワンワン吠えている！',
@@ -112,9 +133,9 @@
       ]
     },
 
-    // 3問目：古い黒板の大きなひび割れ
+    // 4問目：古い黒板の大きなひび割れ
     {
-      id: 'c1q3', chapter: 1, scene: 'crack',
+      id: 'c1q4', chapter: 1, scene: 'crack',
       title: { ja: '黒板の大きなひび', en: 'A big crack in the board' },
       text: {
         ja: '古い黒板に、大きなひび割れ。落ちたら黒板のすき間に消えてしまう！ 向こう側へ渡りたい。',
@@ -133,27 +154,6 @@
         { sub: 'bug', result: 'funny', act: 'swarm',
           ja: '「{w}」の大群がやって来て、つながって橋になった！',
           en: 'A swarm of {w} marched in and linked up into a bridge!' }
-      ]
-    },
-
-    // 4問目：真っ暗で見えない（日直が電気を消して帰った）
-    {
-      id: 'c1q4', chapter: 1, scene: 'dark',
-      title: { ja: '真っ暗で見えない', en: 'Lights out' },
-      text: {
-        ja: '日直が教室の電気を消して帰ってしまった。黒板の上は真っ暗で、前がまったく見えない！',
-        en: 'The class monitor switched off the lights and went home. The board is pitch black!'
-      },
-      rules: [
-        { tag: 'glow', result: 'success', act: 'light',
-          ja: '「{w}」がピカッと光って、道が見えた！',
-          en: 'The {w} lit up and showed the way!' },
-        { tag: 'hot', result: 'success', act: 'torch',
-          ja: '「{w}」を高くかかげると、赤く光ってあたりを照らした！',
-          en: 'Held the {w} up high. It glowed red and lit up the way!' },
-        { tag: 'sound', result: 'funny', act: 'echo',
-          ja: '「{w}」の音がこだまして、なんとなく道がわかった！',
-          en: 'The {w} echoed around, and the stickman could sort of hear the way!' }
       ]
     },
 
@@ -211,4 +211,5 @@
       ]
     }
   ];
+
 })(window);

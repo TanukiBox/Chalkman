@@ -228,10 +228,9 @@
      *   'fade'  ：ふわっと切りかえる（やり直し・タイトルなど）
      */
     function transitionTo(type, then) {
-      if (type === 'scroll' && P.D) {
-        var old = { D: P.D, sceneId: P.sceneId };
-        then(true);
-        P.trans = { type: 'scroll', t: 0, dur: 1.1, old: old };
+      if (type === 'scroll') {
+        // 前の問題は見せない：いったん消えて、次の場所に棒人間が左から歩いて入ってくる
+        P.trans = { type: 'fade', t: 0, dur: 0.35, then: function () { then(true); }, done: false };
       } else {
         P.trans = { type: 'fade', t: 0, dur: 0.3, then: then, done: false };
       }
@@ -788,7 +787,7 @@
       } else if (D.held === 'overhead') {
         w.x = j.head[0]; w.y = j.head[1] - 20 * s - w.dispH() / 2; w.rot = 0;
       } else if (D.held === 'mouth') {
-        w.x = j.head[0] + f * 16 * s; w.y = j.head[1] + 10 * s; w.rot = D.heldRot * f;
+        w.x = j.head[0] + f * (16 * s + w.dispW() * 0.35); w.y = j.head[1] + 12 * s; w.rot = D.heldRot * f;
       } else if (D.held === 'dig') {
         w.x = j.handF[0] + f * 10 * s; w.y = j.handF[1] + 12 * s; w.rot = f * 1.1;
       } else {

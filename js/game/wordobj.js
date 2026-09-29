@@ -47,6 +47,13 @@
     return c;
   }
 
+  var scratch = null;
+  function scratchFor(w, h) {
+    if (!scratch) scratch = document.createElement('canvas');
+    if (scratch.width !== w || scratch.height !== h) { scratch.width = w; scratch.height = h; }
+    return scratch;
+  }
+
   /**
    * 文字オブジェクトを作る
    *   var w = CM.createWord('オノ', dpr);
@@ -93,6 +100,20 @@
       draw: function (ctx, o) {
         o = o || {};
         if (obj.alpha <= 0) return;
+        // かじった跡・光る帯は、この文字だけにかける（下にある棒人間の顔などを消さないように、別の紙に描いてから重ねる）
+        if ((obj.bites.length || (obj.shine >= 0 && obj.shine <= 1)) && !o._inner && ctx.getTransform) {
+          var cv = ctx.canvas, sc = scratchFor(cv.width, cv.height), g = sc.getContext('2d');
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+          g.clearRect(0, 0, sc.width, sc.height);
+          g.setTransform(ctx.getTransform());
+          obj.draw(g, { alpha: o.alpha, tint: o.tint, _inner: true });
+          ctx.save();
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.drawImage(sc, 0, 0);
+          ctx.restore();
+          return;
+        }
         ctx.save();
         ctx.globalAlpha = obj.alpha * (o.alpha === undefined ? 1 : o.alpha);
         ctx.translate(obj.x, obj.y);
