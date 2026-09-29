@@ -508,6 +508,82 @@
     }
   };
 
+  // ---- 第2章で使う姿勢 ----
+
+  // ねむい：首がこっくりこっくり、目を閉じて、腕はだらん
+  CM.MAN_ANIMS.sleepy = {
+    loop: 3,
+    frame: function (t, env) {
+      var p = stand(env.cx, 0, 1), k = Math.max(0, Math.sin(t / 3 * TAU));
+      p.lean = 0.05 + 0.08 * k; p.tilt = 0.2 + 0.5 * k;
+      p.aF = [0.08, 0.05]; p.aB = [-0.06, 0.05];
+      p.eyes = 'closed'; p.mouth = k > 0.6 ? 'o' : 'flat';
+      return { pose: plant(p, env.s, env.groundY) };
+    }
+  };
+  // 横になって眠る（体を横にする。足の先が右、頭が左）
+  CM.MAN_ANIMS.lie = {
+    loop: 3,
+    frame: function (t, env) {
+      var s = env.s, b = Math.sin(t / 3 * TAU);
+      var p = { x: env.cx + 20 * s, y: env.groundY - 5 * s, f: 1, lean: -PI / 2, tilt: -0.1,
+        aF: [2.2, -0.6 + 0.05 * b], aB: [2.3, -0.5], lF: [PI / 2 + 0.02, 0.1], lB: [PI / 2 - 0.08, 0.2],
+        mouth: 'o', eyes: 'closed', alpha: 1 };
+      return { pose: p };
+    }
+  };
+  // ふるえる：自分をだきしめて、がたがた
+  CM.MAN_ANIMS.shiver = {
+    loop: 1,
+    frame: function (t, env) {
+      var p = stand(env.cx, 0, 1), j = Math.sin(t * 70);
+      p.x += j * 1.2 * env.s;
+      p.lean = 0.12; p.tilt = 0.12;
+      p.aF = [0.9, 2.1]; p.aB = [0.75, 2.2];
+      p.lF = [0.1, -0.05]; p.lB = [-0.08, 0.02];
+      p.mouth = 'wavy'; p.eyes = 'closed';
+      return { pose: plant(p, env.s, env.groundY) };
+    }
+  };
+  // 向かい風に向かって、前かがみでふんばる（位置は演出の側で動かす）
+  CM.MAN_ANIMS.push = {
+    loop: 1e9,
+    frame: function (t, env) {
+      var w = t * TAU * 0.9;
+      var p = stand(env.cx, 0, env.f || 1);
+      p.lean = 0.5 + 0.04 * Math.sin(t * 9);
+      p.lF = [0.55 + 0.3 * Math.sin(w), -0.5 - 0.4 * Math.max(0, Math.cos(w))];
+      p.lB = [-0.35 - 0.2 * Math.sin(w), -0.1];
+      p.aF = [1.5, 0.3]; p.aB = [1.3, 0.5];
+      p.mouth = 'flat'; p.eyes = 'closed';
+      return { pose: plant(p, env.s, env.groundY), events: stepEvents(w, 'step') };
+    }
+  };
+  // しのび足：ひざを高く、両手を前に（位置は演出の側で動かす）
+  CM.MAN_ANIMS.sneak = {
+    loop: 1e9,
+    frame: function (t, env) {
+      var w = t * TAU * 0.8;
+      var p = stand(env.cx, 0, env.f || 1);
+      p.lean = 0.18;
+      p.lF = [0.5 * Math.sin(w) + 0.2, -0.2 - 1.1 * Math.max(0, Math.cos(w))];
+      p.lB = [-0.5 * Math.sin(w) + 0.2, -0.2 - 1.1 * Math.max(0, -Math.cos(w))];
+      p.aF = [1.2, 1.1 + 0.1 * Math.sin(w)]; p.aB = [1.0, 1.3];
+      p.mouth = 'flat';
+      return { pose: plant(p, env.s, env.groundY) };
+    }
+  };
+  // はく手（その場で）
+  CM.MAN_ANIMS.clap = {
+    loop: 0.5,
+    frame: function (t, env) {
+      var p = stand(env.cx, 0, 1), c = Math.sin(t / 0.5 * TAU);
+      p.aF = [1.25 + 0.25 * c, 0.9]; p.aB = [1.0 - 0.1 * c, 1.4];
+      p.mouth = 'smile'; p.eyes = 'happy';
+      return { pose: plant(p, env.s, env.groundY) };
+    }
+  };
+
   /** 足音などを、周期の決まった位置で鳴らすための目印 */
   function stepEvents(w, id) {
     return [{ phase: w, id: id }];

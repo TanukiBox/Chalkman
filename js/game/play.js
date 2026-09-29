@@ -153,7 +153,7 @@
   }
 
   function updateActor(D, a, dt) {
-    var env = { stage: D.st, groundY: a.gy, cx: a.x, s: D.s, fixedX: a.x, f: a.f, shake: a.shake };
+    var env = { stage: D.st, groundY: a.gy, cx: a.x, s: D.s * (a.k || 1), fixedX: a.x, f: a.f, shake: a.shake };
     var frozen = a.freezeT !== null;
     if (frozen) { a.runner.t = a.freezeT; dt = 0; }
     var fr = a.runner.update(dt, env, frozen ? null : function (id) { D.sfx.play(id); });
@@ -185,7 +185,24 @@
     };
     var ui = {};
 
-    function chapterProblems(ch) { return CM.PROBLEMS.filter(function (p) { return p.chapter === ch; }); }
+    /** その章の問題（第2章は、通ってきたルートの問題だけ） */
+    function chapterProblems(ch) {
+      var route = run && run.route;
+      return CM.PROBLEMS.filter(function (p) { return p.chapter === ch && (!p.route || p.route === (route || 'sky')); });
+    }
+    /** 章の名前（ルートで名前が変わる章もある） */
+    function chapterName(ch) {
+      var c = CM.CHAPTERS[ch] || {}, lang = app.i18n.lang;
+      if (c[lang]) return c[lang];
+      var r = c[(run && run.route) || 'sky'] || {};
+      return r[lang] || '';
+    }
+    /** 全20問の中で何問目か（0から） */
+    function globalQ() {
+      var n = 0;
+      for (var c = 1; c < run.chapter; c++) n += chapterProblems(c).length;
+      return n + run.q;
+    }
 
     // ---- シーン ----
     /**
@@ -276,7 +293,7 @@
         P.D.man.x = P.D.st.x + P.D.st.w * 0.5;
         P.D.man.play('cheer');
         P.state = 'clear';
-        P.stamp = { key: 'clearTitle', color: COL.yellow, t: 0 };
+        P.stamp = { key: 'clearTitleN', params: { n: run.chapter }, color: COL.yellow, t: 0 };
         buildPad();
         setTimeout(function () {
           var tip = meter.tipPos(app.L);
@@ -397,7 +414,8 @@
       P.phase = 'act';
       P.failAfterDone = false;
       P.word = null;
-      D.man.play(D.sc.manAnim === 'hungry' ? 'hungry' : 'idle');
+      // 場面によっては、演出が始まっても姿勢をそのままにする（おなかがすいた・星に乗っている・ねむい など）
+      D.man.play(D.sc.manAnim === 'hungry' || D.sc.keepAnim ? D.sc.manAnim : 'idle');
       var act = CM.ACTS[r.act] || CM.ACTS.fizzle;
       D.thread = { it: act(D), wait: 0, done: false };
     }
@@ -417,7 +435,7 @@
       if (kind === 'success' || kind === 'funny') {
         if (kind === 'funny') {
           run.funny++;
-          run.lastFunny = { chapter: run.chapter, q: run.q + 1, word: r.text, text: CM.fillWord(r.reaction[app.i18n.lang], r.text) };
+          run.lastFunny = { chapter: run.chapter, q: globalQ() + 1, word: r.text, text: CM.fillWord(r.reaction[app.i18n.lang], r.text) };
         }
         if (r.route) run.route = r.route;
         P.stamp = { key: kind === 'success' ? 'stamp_success' : 'stamp_funny', color: kind === 'success' ? COL.green : COL.yellow, t: 0 };
@@ -522,7 +540,7 @@
         padEl.appendChild(btn(T('toLab'), 'small', function () { app.sfx.play('ui'); app.go('lab'); }));
       } else if (st === 'input' || st === 'result' || st === 'dying') {
         var list = chapterProblems(run.chapter);
-        padEl.appendChild(el('p', 'qnum kb-hide', CM.CHAPTERS[run.chapter][app.i18n.lang] + '　' + (run.q + 1) + ' / ' + list.length));
+        padEl.appendChild(el('p', 'qnum kb-hide', chapterName(run.chapter) + '　' + (run.q + 1) + ' / ' + list.length));
         if (st === 'result') {
           var r = P.result, kind = r.kind;
           padEl.appendChild(el('p', 'rmain k-' + kind, T('kind_' + kind)));
@@ -537,10 +555,12 @@
           if (P.msg) padEl.appendChild(el('p', 'rmsg k-' + P.msgKind, P.msg));
         }
       } else if (st === 'clear') {
-        padEl.appendChild(el('p', 'rmain k-success', T('clearTitle') + '　' + T('chalkPlus')));
-        padEl.appendChild(el('p', 'rmsg big', T(run.route === 'sky' ? 'route_sky' : 'route_under')));
-        padEl.appendChild(el('p', 'note', T('funnyCount', { n: run.funny }) + '　' + T('toBeContinued')));
-        padEl.appendChild(btn(T('restart'), 'big', function () { app.sfx.play('ui'); newGame(); }));
+        padEl.appendChild(el('p', 'rmain k-success', T('clearTitleN', { n: run.chapter }) + '　' + T('chalkPlus')));
+        if (run.chapter === 1) padEl.appendChild(el('p', 'rmsg big', T(run.route === 'under' ? 'route_under' : 'route_sky')));
+        else padEl.appendChild(el('p', 'rmsg big', T(run.route === 'under' ? 'ch2done_under' : 'ch2done_sky')));
+        padEl.appendChild(el('p', 'note', T('funnyCount', { n: run.funny }) + (CM.CHAPTERS[run.chapter + 1] ? '' : '　' + T('toBeContinued'))));
+        if (CM.CHAPTERS[run.chapter + 1]) padEl.appendChild(btn(T('nextChapter', { n: run.chapter + 1 }), 'big', function () { app.sfx.play('ui'); run.chapter++; goProblem(0, 'scroll'); }));
+        else padEl.appendChild(btn(T('restart'), 'big', function () { app.sfx.play('ui'); newGame(); }));
         padEl.appendChild(btn(T('toTitle'), 'small', function () { app.sfx.play('ui'); toTitle(); }));
       } else if (st === 'over') {
         padEl.appendChild(el('p', 'rmain k-fail', T('gameOver')));
@@ -561,11 +581,18 @@
         if (P.state === 'title') setScene('title', null);
         buildPad();
         // 確認用：URL に ?q=3 を付けると、その問題から始める
+        //   第2章は ?q=7（空ルート）、?q=7&r=under（地下ルート）
         var m = /[?&]q=(\d+)/.exec(global.location.search);
         if (m && !run) {
-          run = { chapter: 1, q: 0, funny: 0, lastFunny: null, route: null, words: 0 };
+          var rm = /[?&]r=(sky|under)/.exec(global.location.search);
+          run = { chapter: 1, q: 0, funny: 0, lastFunny: null, route: rm ? rm[1] : null, words: 0 };
           meter.set(CFG.CHALK_START);
-          goProblem(U.clamp(parseInt(m[1], 10) - 1, 0, chapterProblems(1).length - 1));
+          var n = parseInt(m[1], 10) - 1;
+          while (run.chapter < 3 && CM.CHAPTERS[run.chapter + 1] && n >= chapterProblems(run.chapter).length) {
+            n -= chapterProblems(run.chapter).length; run.chapter++;
+            if (!run.route) run.route = 'sky';
+          }
+          goProblem(U.clamp(n, 0, chapterProblems(run.chapter).length - 1));
         }
       },
       relayout: function () {
@@ -657,8 +684,8 @@
         ctx.restore();
         // 見出しと、黒板の地図（暗やみの上にも見えるように、ここで描く）
         if (P.prob && run && P.state !== 'prologue') {
-          CM.chalk.text(ctx, (run.q + 1) + '. ' + P.prob.title[app.i18n.lang], st.x + 14, st.y + 22, { size: 18, align: 'left', color: COL.yellow, maxW: st.w - 170 });
-          drawMap(ctx, st, run.q);
+          CM.chalk.text(ctx, (globalQ() + 1) + '. ' + P.prob.title[app.i18n.lang], st.x + 14, st.y + 22, { size: 18, align: 'left', color: COL.yellow, maxW: st.w - 170 });
+          drawMap(ctx, st, globalQ());
         }
         // 結果のはんこ
         if (P.stamp) {
@@ -668,7 +695,7 @@
           ctx.translate(st.x + st.w / 2, st.y + st.h * (P.state === 'clear' ? 0.3 : 0.45));
           ctx.rotate(-0.08);
           ctx.scale(ks, ks);
-          CM.chalk.text(ctx, T(P.stamp.key), 0, 0, { size: sz, color: P.stamp.color, maxW: st.w * 0.9 });
+          CM.chalk.text(ctx, T(P.stamp.key, P.stamp.params), 0, 0, { size: sz, color: P.stamp.color, maxW: st.w * 0.9 });
           if (P.stamp.key === 'gameOver') CM.chalk.text(ctx, T('end8'), 0, sz, { size: sz * 0.45, color: COL.chalk, maxW: st.w * 0.9 });
           ctx.restore();
         }
@@ -711,7 +738,7 @@
       // 棒人間（と、手に持った文字）
       D.actors.forEach(function (a) {
         if (!a.frame) return;
-        var j = CM.drawMan(ctx, a.frame.pose, D.s, D.time, { color: a.color });
+        var j = CM.drawMan(ctx, a.frame.pose, D.s * (a.k || 1), D.time, { color: a.color });
         a.joints = j;
         var ex = a.frame.extras || {};
         if (ex.eraseFrom !== undefined && ex.eraseFrom !== null && (P.state === 'dying' || P.state === 'over') && D === P.D) {

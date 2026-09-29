@@ -678,4 +678,7 @@
     drawDog(ctx, { x: D.st.x + D.st.w * 0.55, hop: 0, mode: 'idle', t: 0, alpha: 0.6, face: -1, tail: D.time * 3, ds: D.s * 0.7 }, D);
     drawCake(ctx, D.st.x + D.st.w * 0.82, D.gy, D.s * 0.6, D.time);
   };
+
+  // 第2章（scenes-ch2.js）でも使う道具
+  CM.sceneKit = { X: X, bez: bez, drawGround: drawGround, fullGround: fullGround, makeProp: makeProp };
 })(window);

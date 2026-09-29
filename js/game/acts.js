@@ -1449,4 +1449,7 @@
 
   /** 喜ぶ（その場でばんざい） */
   function m_cheer(D) { D.man.play('cheer'); D.sfx.play('cheer'); }
+
+  // 第2章（acts-ch2.js）でも使う道具
+  CM.actKit = { onGround: onGround, topOf: topOf, exitX: exitX, pop: pop, pickUp: pickUp, dropWord: dropWord, gapSpan: gapSpan, mount: mount, throwTo: throwTo, cheer: m_cheer };
 })(window);

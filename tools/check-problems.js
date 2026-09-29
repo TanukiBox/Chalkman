@@ -11,8 +11,10 @@ const fs = require('fs');
 const path = require('path');
 const CM = require('./load-judge')();
 const root = path.join(__dirname, '..');
-const acts = new Set([...fs.readFileSync(path.join(root, 'js/game/acts.js'), 'utf8').matchAll(/\bA\.(\w+)\s*=/g)].map(m => m[1]));
-const scenesSrc = fs.readFileSync(path.join(root, 'js/game/scenes.js'), 'utf8');
+// 演出と黒板の様子は、章ごとにファイルが分かれている（acts.js・acts-ch2.js など）
+const read = re => fs.readdirSync(path.join(root, 'js/game')).filter(f => re.test(f)).map(f => fs.readFileSync(path.join(root, 'js/game', f), 'utf8')).join('\n');
+const acts = new Set([...read(/^acts.*\.js$/).matchAll(/\bA\.(\w+)\s*=/g)].map(m => m[1]));
+const scenesSrc = read(/^scenes.*\.js$/);
 const scenes = new Set([...scenesSrc.matchAll(/^    (\w+): \{$/gm), ...scenesSrc.matchAll(/^  SC\.(\w+) = \{$/gm)].map(m => m[1]));
 let bad = 0;
 function ng(msg) { bad++; console.log('  ✗ ' + msg); }

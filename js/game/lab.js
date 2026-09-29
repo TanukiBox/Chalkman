@@ -106,8 +106,14 @@
     function buildJudgePad() {
       var st = CM.DICT_STATS;
       padEl.appendChild(el('p', 'note kb-hide', T('judgeNote', { ja: st.ja, en: st.en, all: st.ja + st.en })));
-      var pr = el('div', 'tabs kb-hide');
-      [['none', T('probNone')]].concat(CM.PROBLEMS.map(function (p, i) { return [p.id, 'Q' + (i + 1)]; })).forEach(function (d) {
+      var pr = el('div', 'tabs probs kb-hide');
+      // 問題の名前：第1章は Q1〜Q6、第2章は 空7〜空13（空ルート）・地7〜地13（地下ルート）
+      var nth = {};
+      [['none', T('probNone')]].concat(CM.PROBLEMS.map(function (p) {
+        var key = p.route || 'all'; nth[key] = (nth[key] || 0) + 1;
+        var n = nth[key] + (p.route ? CM.PROBLEMS.filter(function (q) { return q.chapter < p.chapter; }).length : 0);
+        return [p.id, (p.route ? T(p.route === 'sky' ? 'routeSkyShort' : 'routeUnderShort') : 'Q') + n];
+      })).forEach(function (d) {
         pr.appendChild(btn(d[1], 'small' + (S.prob === d[0] ? ' on' : ''), function () {
           S.prob = d[0]; app.sfx.play('ui');
           if (S.result && S.result.kind !== 'ng') judgeSubmit(S.result.text); else buildPad();

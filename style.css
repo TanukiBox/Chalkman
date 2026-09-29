@@ -86,6 +86,8 @@ body {
 .cbtn .num { font-size: 11px; opacity: 0.7; margin-right: 3px; }
 .tabs { display: flex; gap: 6px; }
 .tabs .cbtn { flex: 1 1 0; }
+.tabs.probs { flex-wrap: wrap; gap: 4px; }
+.tabs.probs .cbtn { flex: 0 0 auto; min-width: 2.6em; padding-left: 6px; padding-right: 6px; }
 .note {
   font-size: 13px;
   line-height: 1.4;
