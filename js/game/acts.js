@@ -1450,6 +1450,51 @@
   /** 喜ぶ（その場でばんざい） */
   function m_cheer(D) { D.man.play('cheer'); D.sfx.play('cheer'); }
 
+  // ============================================================
+  //  試遊で足した正解（第1章）
+  // ============================================================
+
+  // 人が来て、教室の電気をつけてくれる（1問目・人）
+  A.switchOn = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, sx = D.st.x + 16 * s, sy = D.gy - 90 * s, on = false;
+    // 黒板のわきの、電気のスイッチ
+    D.chalkHook(function (ctx) {
+      CM.chalk.line(ctx, [sx - 7 * s, sy - 11 * s, sx + 7 * s, sy - 11 * s, sx + 7 * s, sy + 11 * s, sx - 7 * s, sy + 11 * s, sx - 7 * s, sy - 11 * s], { w: 2, seed: 3 });
+      CM.chalk.line(ctx, [sx, sy + (on ? -6 : 6) * s, sx, sy + (on ? -1 : 1) * s], { w: 3, seed: 4, color: COL.yellow });
+    });
+    var x0 = w.x;
+    yield D.tween(0.9, function (k) { w.x = U.lerp(x0, sx + 16 * s + w.dispW() / 2, k); onGround(D, w); w.y -= Math.abs(Math.sin(k * PI * 3)) * 8 * s; });
+    yield D.tween(0.25, function (k) { w.rot = -0.2 * Math.sin(k * PI); });
+    on = true;
+    D.sfx.play('clink');
+    pop(D, 'sfx_pachi', sx + 20 * s, sy - 30 * s, COL.yellow, 20);
+    yield D.tween(0.3, function (k) { if (sc.dark !== undefined) sc.dark = 1 - k; });
+    m_cheer(D);
+    yield 0.8;
+    yield D.walkTo(exitX(D));
+  };
+
+  // 魔法で、ケーキの絵が本物に（5問目・魔法）
+  A.realCake = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, m = D.man, y0 = w.y;
+    w.tint = COL.purple;
+    D.sfx.play('sparkle');
+    yield D.tween(0.6, function (k) { w.y = y0 - 30 * s * U.easeOut(k); });
+    for (var i = 0; i < 12; i++) D.fx.add({ type: 'star', x: sc.cakeX + (Math.random() - 0.5) * 110 * s, y: D.gy - Math.random() * 110 * s, life: 0.8, size: 5 * s, color: COL.yellow });
+    pop(D, 'sfx_kira', sc.cakeX, D.gy - 140 * s, COL.yellow, 20);
+    yield D.tween(0.8, function (k) { sc.real = k; w.alpha = 1 - k; });
+    yield D.walkTo(sc.cakeX - 72 * s, { anim: 'walk' });
+    m.play('eat');
+    sc.hungry = false;
+    pop(D, 'sfx_munch', m.x + 20 * s, D.gy - 120 * s, COL.chalk, 18);
+    yield D.tween(2.0, function (k) {
+      sc.eaten = k;
+      if (Math.random() < 0.08) { D.sfx.play('munch'); D.fx.add({ type: 'crumb', x: m.x + 30 * s, y: D.gy - 70 * s, vx: (Math.random() - 0.5) * 60, vy: -30, g: 300, life: 0.6, size: 3 * s, color: COL.pink }); }
+    });
+    m_cheer(D);
+    yield 1.0;
+  };
+
   // 第2章（acts-ch2.js）でも使う道具
   CM.actKit = { onGround: onGround, topOf: topOf, exitX: exitX, pop: pop, pickUp: pickUp, dropWord: dropWord, gapSpan: gapSpan, mount: mount, throwTo: throwTo, cheer: m_cheer };
 })(window);

@@ -110,7 +110,23 @@
       ['はむすたー', 'hamster', '小さい かわいい'],
       ['ごりら', 'gorilla', '大きい 重い 危ない'],
       ['はりねずみ', 'hedgehog', '小さい 危ない かわいい'],
-      ['すかんく', 'skunk', '危ない']
+      ['すかんく', 'skunk', '危ない'],
+      ['おおかみ/狼', 'wolf', '危ない 音が出る'],
+      ['しか/鹿', 'deer', ''],
+      ['いのしし/猪', 'boar/wild boar', '重い 危ない'],
+      ['ちーたー/豹', 'cheetah/leopard', '危ない'],
+      ['しまうま/縞馬', 'zebra', ''],
+      ['なまけもの', 'sloth', '柔らかい かわいい'],
+      ['あらいぐま', 'raccoon', 'かわいい'],
+      ['とかげ/蜥蜴', 'lizard', '小さい'],
+      ['かぴばら', 'capybara', '柔らかい かわいい'],
+      ['ちんぱんじー/おらんうーたん', 'chimpanzee/orangutan/ape', ''],
+      ['あるまじろ', 'armadillo', '硬い'],
+      ['しろくま/ほっきょくぐま/白熊', 'polar bear', '冷たい 大きい 危ない'],
+      ['ももんが/むささび', 'flying squirrel', '飛ぶ 小さい かわいい'],
+      ['となかい', 'reindeer', '大きい'],
+      ['へらじか', 'moose/elk', '大きい 重い'],
+      ['びーばー', 'beaver', '泳ぐ']
     ],
     bird: [
       ['とり/鳥/ことり/小鳥', 'bird', '飛ぶ'],
@@ -138,7 +154,18 @@
       ['きつつき/啄木鳥', 'woodpecker', '飛ぶ 音が出る 硬い'],
       ['うぐいす/鶯', 'warbler/bush warbler', '音が出る 飛ぶ 小さい'],
       ['はちどり/蜂鳥', 'hummingbird', '飛ぶ 小さい'],
-      ['こんどる', 'condor', '飛ぶ 大きい']
+      ['こんどる', 'condor', '飛ぶ 大きい'],
+      ['きじ/雉', 'pheasant', '飛ぶ'],
+      ['うずら/鶉', 'quail', '小さい'],
+      ['とき/朱鷺', 'crested ibis', '飛ぶ'],
+      ['ひばり', 'skylark/lark', '飛ぶ 音が出る'],
+      ['めじろ', 'white-eye', '飛ぶ 小さい かわいい'],
+      ['さぎ/しらさぎ/鷺', 'heron/egret', '飛ぶ 長い'],
+      ['ほととぎす', 'cuckoo', '飛ぶ 音が出る'],
+      ['はやぶさ/隼', '', '飛ぶ 危ない'],
+      ['かわせみ', 'kingfisher', '飛ぶ 小さい'],
+      ['きゅうかんちょう', 'myna/mynah', '飛ぶ 音が出る'],
+      ['こまどり', 'robin', '飛ぶ 小さい かわいい']
     ],
     bug: [
       ['むし/虫', 'bug/insect', '小さい'],
@@ -166,7 +193,17 @@
       ['ごきぶり', 'cockroach/roach', '危ない'],
       ['かまきり/蟷螂', 'mantis/praying mantis', '危ない'],
       ['あめんぼ', 'water strider', '泳ぐ'],
-      ['だんごむし/団子虫', 'pill bug/roly poly', '小さい 硬い']
+      ['だんごむし/団子虫', 'pill bug/roly poly', '小さい 硬い'],
+      ['すずめばち', '', '飛ぶ 危ない'],
+      ['なめくじ', 'slug', '柔らかい 小さい'],
+      ['あげは/あげはちょう', 'swallowtail', '飛ぶ かわいい'],
+      ['かなぶん/こがねむし', 'june bug/scarab', '飛ぶ 硬い'],
+      ['げんごろう', 'diving beetle', '泳ぐ'],
+      ['しろあり', 'termite', '小さい'],
+      ['のみ/蚤', 'flea', '小さい'],
+      ['かげろう', 'mayfly', '飛ぶ 小さい'],
+      ['ありじごく', 'antlion', ''],
+      ['みのむし', 'bagworm', '小さい']
     ],
     sea: [
       ['さかな/魚/うお', 'fish', '泳ぐ 食べられる'],
@@ -194,7 +231,20 @@
       ['うなぎ/鰻', 'eel', '長い 泳ぐ 食べられる'],
       ['きんぎょ/金魚', 'goldfish', '泳ぐ 小さい かわいい'],
       ['めだか/目高', 'killifish/medaka', '泳ぐ 小さい'],
-      ['たつのおとしご/竜の落とし子', 'seahorse', '泳ぐ かわいい']
+      ['たつのおとしご/竜の落とし子', 'seahorse', '泳ぐ かわいい'],
+      ['しゃち', 'orca/killer whale', '泳ぐ 大きい 危ない'],
+      ['まんぼう', 'sunfish', '泳ぐ 大きい'],
+      ['えい', 'stingray/ray', '泳ぐ'],
+      ['ほたて', 'scallop', '食べられる 硬い'],
+      ['あさり/はまぐり', '', '小さい 食べられる'],
+      ['さんご/珊瑚', 'coral', '硬い'],
+      ['いわし/鰯', 'sardine', '泳ぐ 小さい 食べられる'],
+      ['かつお/鰹', 'bonito/tuna fish', '泳ぐ 食べられる'],
+      ['おっとせい', 'fur seal/sea lion', '泳ぐ かわいい'],
+      ['じゅごん/まなてぃ', 'dugong/manatee', '泳ぐ 大きい'],
+      ['くりおね', 'sea angel', '泳ぐ 小さい かわいい'],
+      ['なまこ', 'sea cucumber', '柔らかい'],
+      ['やどかり', 'hermit crab', '小さい 硬い']
     ],
     fantasy: [
       ['どらごん/りゅう/竜/龍', 'dragon', '飛ぶ 熱い 大きい 危ない'],
@@ -222,7 +272,18 @@
       ['みいら/木乃伊', 'mummy', '長い'],
       ['きゅうびのきつね/九尾の狐', 'nine tailed fox/kitsune', '熱い 危ない'],
       ['ぐりふぉん', 'griffin/gryphon', '飛ぶ 危ない'],
-      ['くらーけん', 'kraken', '泳ぐ 大きい 危ない']
+      ['くらーけん', 'kraken', '泳ぐ 大きい 危ない'],
+      ['まおう/魔王', 'demon king/dark lord', '危ない 大きい'],
+      ['いえてぃ/ゆきおとこ/雪男', 'yeti/bigfoot', '冷たい 大きい'],
+      ['ざしきわらし', 'house spirit', '小さい かわいい'],
+      ['ゆきおんな/雪女', 'snow woman', '冷たい'],
+      ['ろくろくび', 'long-neck ghost', '長い'],
+      ['つちのこ', 'tsuchinoko', ''],
+      ['ねっしー', 'nessie/loch ness monster', '泳ぐ 大きい'],
+      ['さいくろぷす/ひとつめこぞう', 'cyclops', '大きい'],
+      ['けるべろす', 'cerberus', '危ない 音が出る'],
+      ['ばく/獏', 'dream eater/baku', 'かわいい'],
+      ['とろーる', 'troll', '大きい 重い']
     ],
 
     // ======================== 人 ========================
@@ -255,7 +316,22 @@
       ['ぼくさー', 'boxer', '危ない'],
       ['たんてい/探偵', 'detective', ''],
       ['かいぞく/海賊', 'pirate', '泳ぐ 危ない'],
-      ['かがくしゃ/科学者/はかせ/博士', 'scientist/professor', '光る']
+      ['かがくしゃ/科学者/はかせ/博士', 'scientist/professor', '光る'],
+      ['だいとうりょう/大統領/しゅしょう/首相', 'president/prime minister', ''],
+      ['やきゅうせんしゅ/野球選手', 'baseball player', ''],
+      ['さっかーせんしゅ', 'soccer player/football player', ''],
+      ['がか/画家', 'painter/artist', ''],
+      ['さっか/作家', 'writer/author', ''],
+      ['びようし/とこやさん', 'hairdresser/barber', ''],
+      ['ぱんやさん/ぱんや', 'baker', ''],
+      ['うぇいたー/てんいん/店員', 'waiter/clerk/shopkeeper', ''],
+      ['ほいくし/保育士', 'nursery teacher', ''],
+      ['じゅうい/獣医', 'vet/veterinarian', ''],
+      ['べんごし/弁護士', 'lawyer', ''],
+      ['えきいん/駅員', 'station staff/conductor', ''],
+      ['ゆうしゃ/勇者', 'hero', '硬い'],
+      ['しいくいん/飼育員', 'zookeeper', ''],
+      ['がくせい/学生/せいと/生徒', 'student/pupil', '']
     ],
     people: [
       ['おかあさん/お母さん/はは/母/まま', 'mom/mother/mum/mama', '柔らかい'],
@@ -284,7 +360,16 @@
       ['あなた/きみ/君', 'you', ''],
       ['ひと/人/にんげん/人間', 'person/human/people', ''],
       ['かれし/彼氏', 'boyfriend', ''],
-      ['かのじょ/彼女', 'girlfriend', 'かわいい']
+      ['かのじょ/彼女', 'girlfriend', 'かわいい'],
+      ['いとこ', 'cousin', ''],
+      ['まご/孫', 'grandchild', ''],
+      ['みんな', 'everyone/everybody', ''],
+      ['ふたご/双子', 'twins', 'かわいい'],
+      ['おきゃくさん/お客さん', 'guest/customer', ''],
+      ['たんにん/担任', 'homeroom teacher', ''],
+      ['ひいおばあちゃん/ひいおじいちゃん', 'great-grandma/great-grandpa', ''],
+      ['おにいさん/お兄さん', 'older brother', ''],
+      ['おねえさん/お姉さん', 'older sister', '']
     ],
 
     // ======================== 食べ物 ========================
@@ -316,7 +401,21 @@
       ['ほっとどっぐ', 'hot dog', '熱い 食べられる 長い'],
       ['ふらいどぽてと/ぽてとふらい', 'french fries/fries/chips', '熱い 食べられる'],
       ['やきそば/焼きそば', 'fried noodles/yakisoba', '熱い 長い 食べられる'],
-      ['おこのみやき/お好み焼き', 'okonomiyaki', '熱い 食べられる']
+      ['おこのみやき/お好み焼き', 'okonomiyaki', '熱い 食べられる'],
+      ['ぐらたん', 'gratin/mac and cheese', '熱い 食べられる'],
+      ['しちゅー', 'stew', '熱い 食べられる'],
+      ['かつどん/カツ丼', 'katsudon/pork cutlet bowl', '熱い 食べられる'],
+      ['ぎゅうどん/牛丼', 'beef bowl', '熱い 食べられる'],
+      ['ちゃーはん/炒飯', 'fried rice', '熱い 食べられる'],
+      ['すきやき/すき焼き', 'sukiyaki', '熱い 食べられる'],
+      ['やきにく/焼き肉', 'barbecue/grilled meat', '熱い 食べられる'],
+      ['やきとり/焼き鳥', 'yakitori/chicken skewer', '熱い 食べられる 長い'],
+      ['とんかつ', 'pork cutlet/tonkatsu', '熱い 食べられる'],
+      ['えびふらい', 'fried shrimp', '熱い 食べられる'],
+      ['ころっけ', 'croquette', '熱い 食べられる'],
+      ['たこす', 'taco/tacos', '食べられる'],
+      ['べんとう/弁当/おべんとう', 'lunch box/bento', '食べられる'],
+      ['なべりょうり/鍋料理', 'hot pot', '熱い 食べられる']
     ],
     sweets: [
       ['おかし/お菓子/すなっく', 'sweets/snack', '食べられる'],
@@ -346,7 +445,18 @@
       ['きゃらめる', 'caramel/toffee', '食べられる'],
       ['まかろん', 'macaron', 'かわいい 食べられる'],
       ['くれーぷ', 'crepe', '食べられる'],
-      ['どらやき/どら焼き', 'dorayaki', '食べられる']
+      ['どらやき/どら焼き', 'dorayaki', '食べられる'],
+      ['かすてら', 'castella/sponge cake', '柔らかい 食べられる'],
+      ['ばうむくーへん', 'baumkuchen', '食べられる'],
+      ['たると', 'tart/pie', '食べられる'],
+      ['あんみつ', 'anmitsu', '冷たい 食べられる'],
+      ['おはぎ/ぼたもち', 'ohagi/sweet rice ball', '食べられる'],
+      ['ちーずけーき', 'cheesecake', '柔らかい 食べられる'],
+      ['しゃーべっと', 'sherbet/sorbet', '冷たい 食べられる'],
+      ['こんぺいとう/金平糖', 'konpeito/star candy', '小さい 硬い 食べられる かわいい'],
+      ['ちゅろす', 'churro/churros', '長い 食べられる'],
+      ['わがし/和菓子', 'japanese sweets', '食べられる'],
+      ['ろーるけーき', 'roll cake/swiss roll', '柔らかい 食べられる']
     ],
     produce: [
       ['りんご/林檎', 'apple', '食べられる'],
@@ -377,7 +487,21 @@
       ['とうもろこし/もろこし', 'corn/maize', '長い 食べられる'],
       ['ぶろっこりー', 'broccoli', '食べられる'],
       ['きのこ/茸/しいたけ/椎茸', 'mushroom', '食べられる'],
-      ['さつまいも/さつま芋/やきいも/焼き芋', 'sweet potato', '熱い 食べられる']
+      ['さつまいも/さつま芋/やきいも/焼き芋', 'sweet potato', '熱い 食べられる'],
+      ['すもも/ぷらむ', 'plum', '食べられる'],
+      ['うめ/梅/うめぼし/梅干し', 'ume/pickled plum', '食べられる 小さい'],
+      ['ゆず/柚子', 'yuzu/citron', '食べられる'],
+      ['ぐれーぷふるーつ', 'grapefruit', '食べられる'],
+      ['まんごー', 'mango', '食べられる'],
+      ['ここなっつ/やしのみ', '', '硬い 食べられる'],
+      ['あぼかど', 'avocado', '食べられる'],
+      ['ほうれんそう', 'spinach', '食べられる'],
+      ['ねぎ/葱', 'green onion/leek', '長い 食べられる'],
+      ['ごぼう', 'burdock root', '長い 食べられる'],
+      ['れんこん', 'lotus root', '食べられる'],
+      ['えだまめ/枝豆', 'edamame', '小さい 食べられる'],
+      ['だいず/大豆/まめ/豆', 'soybean/bean/beans', '小さい 食べられる'],
+      ['ぱせり', 'parsley', '食べられる']
     ],
     drink: [
       ['おちゃ/お茶/ちゃ/茶/りょくちゃ/緑茶', 'tea/green tea', '熱い 食べられる'],
@@ -404,7 +528,17 @@
       ['えいようどりんく/栄養ドリンク/えなじーどりんく', 'energy drink', '光る'],
       ['みねらるうぉーたー', 'mineral water/bottled water', '冷たい'],
       ['あまざけ/甘酒', 'amazake', '熱い 食べられる'],
-      ['ほっとれもん', 'hot lemon', '熱い']
+      ['ほっとれもん', 'hot lemon', '熱い'],
+      ['めろんそーだ', 'melon soda', '冷たい'],
+      ['かふぇらて/らて/かふぇおれ', 'cafe latte/latte/cafe au lait', '熱い'],
+      ['まっちゃ/抹茶', 'matcha', '熱い'],
+      ['あいすてぃー', 'iced tea', '冷たい'],
+      ['はーぶてぃー', 'herbal tea/herb tea', '熱い'],
+      ['やさいじゅーす', 'vegetable juice', ''],
+      ['ぶどうじゅーす', 'grape juice', ''],
+      ['りんごじゅーす', 'apple juice', ''],
+      ['ふるーつぽんち/ぽんち', 'fruit punch/punch', '冷たい'],
+      ['こんぶちゃ', 'kombucha', '']
     ],
 
     // ======================== 自然 ========================
@@ -433,7 +567,17 @@
       ['おーろら', 'aurora/northern lights', '光る'],
       ['あまぐも/雨雲', 'rain cloud/storm cloud', '冷たい 大きい 飛ぶ'],
       ['ひでり/日照り/もうしょ/猛暑', 'heat wave/drought', '熱い'],
-      ['はるいちばん/春一番', 'spring gale', '飛ぶ']
+      ['はるいちばん/春一番', 'spring gale', '飛ぶ'],
+      ['みぞれ', 'sleet', '冷たい'],
+      ['にゅうどうぐも/入道雲', 'thunderhead/cumulonimbus', '大きい'],
+      ['ひこうきぐも', 'contrail/vapor trail', '長い 飛ぶ'],
+      ['はるかぜ/春風', 'spring breeze', '柔らかい'],
+      ['こがらし/木枯らし', 'cold wind/winter wind', '冷たい'],
+      ['きょうふう/強風', 'gale/strong wind', '危ない'],
+      ['あつさ/暑さ', '', '熱い'],
+      ['さむさ/寒さ', 'cold snap/cold', '冷たい'],
+      ['すなあらし/砂嵐', 'sandstorm', '危ない'],
+      ['ゆうやけ/夕焼け', 'red sky/sunset glow', '光る']
     ],
     land: [
       ['やま/山', 'mountain/mount', '大きい 重い 硬い'],
@@ -462,7 +606,17 @@
       ['ぬま/沼', 'swamp/marsh', '危ない'],
       ['ひょうが/氷河', 'glacier', '冷たい 大きい'],
       ['ちかすい/地下水/いずみ/泉', 'spring water/underground water', '冷たい'],
-      ['じめん/地面/だいち/大地', 'ground/land', '硬い 大きい']
+      ['じめん/地面/だいち/大地', 'ground/land', '硬い 大きい'],
+      ['じゃんぐる/みつりん/密林', 'jungle/rainforest', '大きい'],
+      ['とうげ/峠', 'mountain pass', ''],
+      ['みさき/岬', 'cape/headland', ''],
+      ['わん/湾', 'bay/gulf', '大きい'],
+      ['こうげん/高原', 'plateau/highland', '大きい'],
+      ['さんみゃく/山脈', 'mountain range', '大きい 長い'],
+      ['かわら/河原', 'riverbank/riverside', ''],
+      ['おあしす', 'oasis', ''],
+      ['かこう/火口', 'crater', '熱い 危ない'],
+      ['ちかどう/地下道', 'underpass/underground passage', '長い']
     ],
     plant: [
       ['はな/花/おはな/お花', 'flower/blossom', 'かわいい'],
@@ -492,7 +646,21 @@
       ['ゆり/百合', 'lily', ''],
       ['はす/蓮', 'lotus', '泳ぐ'],
       ['らべんだー', 'lavender', ''],
-      ['ばおばぶ', 'baobab', '大きい 重い']
+      ['ばおばぶ', 'baobab', '大きい 重い'],
+      ['あじさい/紫陽花', 'hydrangea', 'かわいい'],
+      ['すみれ/菫', 'violet', '小さい かわいい'],
+      ['つばき/椿', 'camellia', ''],
+      ['ぼたん/牡丹', 'peony', ''],
+      ['らん/蘭', 'orchid', ''],
+      ['しだ', 'fern', ''],
+      ['いね/稲', 'rice plant', ''],
+      ['むぎ/麦', 'wheat/barley', ''],
+      ['ねこじゃらし', 'foxtail/cattail', 'かわいい'],
+      ['よもぎ', 'mugwort', ''],
+      ['いちょう/銀杏', 'ginkgo', ''],
+      ['くすのき/楠', 'camphor tree', '大きい'],
+      ['ひのき/檜', 'cypress', ''],
+      ['まめのき/豆の木', 'beanstalk', '長い 大きい']
     ],
     element: [
       ['ひ/火/ほのお/炎/ふぁいあ/ふぁいあー/ふぁいやー', 'fire/flame', '熱い 危ない 光る'],
@@ -519,7 +687,13 @@
       ['ばくはつ/爆発', 'explosion/blast', '熱い 危ない 音が出る 大きい'],
       ['でんき/電気/でんりゅう/電流', 'electricity/electric current', '光る 危ない'],
       ['どらいあいす', 'dry ice', '冷たい 危ない'],
-      ['ひょうざん/氷山', 'iceberg', '冷たい 大きい 重い']
+      ['ひょうざん/氷山', 'iceberg', '冷たい 大きい 重い'],
+      ['つなみ/津波', 'tsunami/tidal wave', '大きい 危ない 重い'],
+      ['ひかり/光', 'beam of light', '光る'],
+      ['かげ/影', 'shadow', ''],
+      ['どろみず/泥水', 'muddy water', ''],
+      ['しぶき', 'spray/splash', ''],
+      ['みずたまり/水たまり', 'puddle', '小さい']
     ],
     space: [
       ['うちゅう/宇宙', 'space/universe/outer space', '大きい'],
@@ -546,7 +720,17 @@
       ['みかづき/三日月', 'crescent moon/crescent', '光る'],
       ['まんげつ/満月', 'full moon', '光る'],
       ['ほっきょくせい/北極星', 'north star/polaris', '光る'],
-      ['ほしぞら/星空', 'starry sky/night sky', '光る 大きい']
+      ['ほしぞら/星空', 'starry sky/night sky', '光る 大きい'],
+      ['めいおうせい/冥王星', 'pluto', '小さい 冷たい'],
+      ['てんのうせい/天王星', 'uranus', '冷たい 大きい'],
+      ['かいおうせい/海王星', 'neptune', '冷たい 大きい'],
+      ['たいようけい/太陽系', 'solar system', '大きい'],
+      ['おりおんざ/オリオン座', 'orion', ''],
+      ['ほくとしちせい/北斗七星', 'big dipper', ''],
+      ['にっしょく/日食', 'solar eclipse', ''],
+      ['げっしょく/月食', 'lunar eclipse', ''],
+      ['せいうん/星雲', 'nebula', '光る'],
+      ['うちゅうせん/宇宙船', 'spaceship/spacecraft/space shuttle', '飛ぶ 大きい']
     ],
 
     // ======================== 人工物 ========================
@@ -578,7 +762,25 @@
       ['かんらんしゃ/観覧車', 'ferris wheel', '大きい'],
       ['ぴらみっど', 'pyramid', '大きい 重い'],
       ['みせ/店/おみせ/お店', 'shop/store', ''],
-      ['ぼうくうごう/防空壕/しぇるたー', 'shelter/bunker', '硬い']
+      ['ぼうくうごう/防空壕/しぇるたー', 'shelter/bunker', '硬い'],
+      ['まんしょん/あぱーと', 'apartment/apartment building', '大きい'],
+      ['ぎんこう/銀行', 'bank', ''],
+      ['ゆうびんきょく/郵便局', 'post office', ''],
+      ['けいさつしょ/警察署/こうばん/交番', 'police station/police box', ''],
+      ['しょうぼうしょ/消防署', 'fire station', ''],
+      ['たいいくかん/体育館', 'gym/gymnasium', '大きい'],
+      ['ぷーる', 'pool/swimming pool', '泳ぐ'],
+      ['すたじあむ/きょうぎじょう/競技場', 'stadium/arena', '大きい'],
+      ['びじゅつかん/はくぶつかん', 'museum/art museum', '大きい'],
+      ['どうぶつえん/動物園', 'zoo', ''],
+      ['すいぞくかん/水族館', 'aquarium', ''],
+      ['ゆうえんち/遊園地', 'amusement park', '大きい'],
+      ['くうこう/空港', 'airport', '大きい'],
+      ['こうじょう/工場', 'factory', '大きい 音が出る'],
+      ['ほてる/やど/宿', 'hotel/inn', ''],
+      ['こんびに/すーぱー', 'convenience store/supermarket', ''],
+      ['いぬごや/犬小屋', 'doghouse/kennel', '小さい'],
+      ['ひみつきち/秘密基地', 'secret base/hideout', '']
     ],
     vehicle: [
       ['くるま/車/じどうしゃ/自動車', 'car/automobile', '重い 硬い'],
@@ -609,7 +811,20 @@
       ['ぱらしゅーと', 'parachute', '飛ぶ 柔らかい'],
       ['いちりんしゃ/一輪車', 'unicycle', ''],
       ['ひこうせん/飛行船', 'airship/blimp', '飛ぶ 大きい'],
-      ['じぇっとこーすたー', 'roller coaster', '長い 危ない']
+      ['じぇっとこーすたー', 'roller coaster', '長い 危ない'],
+      ['たくしー', 'taxi/cab', ''],
+      ['しょべるかー/ぱわーしょべる', 'excavator/digger', '重い 大きい'],
+      ['とらくたー', 'tractor', '重い'],
+      ['ものれーる', 'monorail', '長い'],
+      ['ちかてつ/地下鉄', 'subway/metro/underground train', '長い'],
+      ['ふぇりー', 'ferry', '泳ぐ 大きい'],
+      ['ごむぼーと', 'rubber boat/raft boat', '泳ぐ 柔らかい'],
+      ['れーしんぐかー', 'race car/racecar', ''],
+      ['せんしゃ/戦車', 'tank', '重い 硬い 危ない'],
+      ['きゃんぴんぐかー', 'camper/rv', '大きい'],
+      ['べびーかー/うばぐるま', 'stroller/baby carriage/pram', '小さい'],
+      ['きっくぼーど', 'kick scooter/scooter', '小さい'],
+      ['ごみしゅうしゅうしゃ', 'garbage truck', '大きい 音が出る']
     ],
     tool: [
       ['はしご/梯子', 'ladder', '長い'],
@@ -644,7 +859,21 @@
       ['ちず/地図', 'map', ''],
       ['こんぱす/らしんばん/羅針盤', 'compass', ''],
       ['くぎ/釘', 'nail', '小さい 硬い 危ない'],
-      ['ばね/すぷりんぐ', 'spring coil/coil spring', '柔らかい 長い']
+      ['ばね/すぷりんぐ', 'spring coil/coil spring', '柔らかい 長い'],
+      ['ぺんち', 'pliers', ''],
+      ['すぱな/れんち', 'wrench/spanner', '硬い'],
+      ['ふで/筆', 'brush/paintbrush', ''],
+      ['くれよん', 'crayon', ''],
+      ['ぺん', 'pen', ''],
+      ['ひも/紐', 'string/cord', '長い'],
+      ['くさり/鎖', 'chain', '長い 重い 硬い'],
+      ['じょうろ', 'watering can', ''],
+      ['ほーす', 'hose', '長い'],
+      ['はり/針', 'needle/pin', '小さい 危ない'],
+      ['いと/糸', 'thread/yarn', '長い 小さい'],
+      ['めがね/眼鏡', 'glasses/spectacles', '小さい'],
+      ['かめら', 'camera', '光る 音が出る'],
+      ['たいまつ/松明', 'flaming torch', '熱い 光る 長い']
     ],
     weapon: [
       ['おの/斧', 'axe/ax/hatchet', '危ない 硬い 重い'],
@@ -674,7 +903,16 @@
       ['ぶき/武器', 'weapon', '危ない'],
       ['めいす/せんつい/戦槌', 'mace/war hammer', '重い 危ない'],
       ['すりんぐしょっと/ごむてっぽう/ゴム鉄砲', 'slingshot/rubber band gun', '飛ぶ'],
-      ['くさりがま/鎖鎌', 'kusarigama/chain sickle', '危ない 長い']
+      ['くさりがま/鎖鎌', 'kusarigama/chain sickle', '危ない 長い'],
+      ['たんけん/短剣', 'dagger', '危ない 小さい'],
+      ['れいぴあ', 'rapier', '長い 危ない'],
+      ['ぼうがん', 'crossbow', '危ない'],
+      ['なぎなた/薙刀', 'naginata/glaive', '長い 危ない'],
+      ['こうせんじゅう/光線銃', 'ray gun/laser gun', '光る 危ない'],
+      ['びーむさーべる/らいとせーばー', 'lightsaber/beam saber', '光る 長い 危ない'],
+      ['くない', 'kunai', '小さい 危ない'],
+      ['ちゃくらむ', 'chakram', '危ない'],
+      ['せいけん/聖剣', 'holy sword/excalibur', '光る 長い']
     ],
     household: [
       ['つくえ/机', 'desk', '硬い 重い'],
@@ -711,10 +949,28 @@
       ['かーてん', 'curtain', '柔らかい 長い'],
       ['じゅうたん/絨毯/かーぺっと', 'carpet/rug', '柔らかい'],
       ['でんきゅう/電球', 'light bulb/bulb', '光る 熱い'],
-      ['こたつ/炬燵', 'kotatsu', '熱い 柔らかい']
+      ['こたつ/炬燵', 'kotatsu', '熱い 柔らかい'],
+      ['まふらー', 'scarf/muffler', '柔らかい 長い'],
+      ['てぶくろ/手袋', 'gloves/mittens', '柔らかい'],
+      ['すとーぶ/ひーたー', 'stove/heater', '熱い'],
+      ['だんぼーる/段ボール', 'cardboard box/box', '大きい'],
+      ['ほんだな/本棚', 'bookshelf/bookcase', '大きい 重い'],
+      ['ほん/本', 'book', ''],
+      ['ざぶとん/座布団/くっしょん', '', '柔らかい'],
+      ['かいろ', 'hand warmer/heat pack', '熱い 小さい'],
+      ['ゆたんぽ/湯たんぽ', 'hot water bottle', '熱い'],
+      ['ぱじゃま', 'pajamas/pyjamas', '柔らかい'],
+      ['こーと/上着', 'coat/jacket', '柔らかい'],
+      ['はんかち/ていっしゅ', 'handkerchief/tissue', '柔らかい 小さい'],
+      ['でんしれんじ/れんじ', 'microwave', '熱い 音が出る'],
+      ['そうじき/掃除機', 'vacuum cleaner/vacuum', '音が出る'],
+      ['とーすたー', 'toaster', '熱い'],
+      ['まほうびん/すいとう/水筒', 'thermos/water bottle', ''],
+      ['たからばこ/宝箱', 'treasure chest', '硬い 重い']
     ],
     toy: [
       ['おもちゃ/玩具', 'toy', 'かわいい'],
+      ['こもりうた/子守唄/子守歌', 'lullaby', '柔らかい'],
       ['ぬいぐるみ/縫いぐるみ/くまのぬいぐるみ', 'stuffed animal/plush/teddy bear/teddy', '柔らかい かわいい'],
       ['ぼーる/たま/球/まり/鞠', 'ball', '柔らかい'],
       ['ふうせん/風船', 'balloon', '飛ぶ 柔らかい かわいい'],
@@ -744,7 +1000,22 @@
       ['げーむ/げーむき/ゲーム機', 'video game/game console', '光る 音が出る'],
       ['ぱずる', 'puzzle/jigsaw puzzle', ''],
       ['とらんぷ', 'playing cards/cards', ''],
-      ['すけーと/すけーとぐつ', 'ice skates/skates', '冷たい']
+      ['すけーと/すけーとぐつ', 'ice skates/skates', '冷たい'],
+      ['おりがみ/折り紙', 'origami', '小さい'],
+      ['びーだま/ビー玉/おはじき', 'marble/marbles', '小さい 硬い'],
+      ['すごろく/かるた', 'board game/card game', ''],
+      ['だるま', 'daruma doll', 'かわいい'],
+      ['らじこん', 'rc car/remote control car', ''],
+      ['ぷらもでる', 'model kit/plastic model', ''],
+      ['びっくりばこ', 'jack-in-the-box', '音が出る'],
+      ['たけとんぼ/竹とんぼ', 'bamboo copter', '飛ぶ'],
+      ['みずふうせん/水風船', 'water balloon', '柔らかい'],
+      ['なわとび/縄跳び', 'jump rope/skipping rope', '長い'],
+      ['ふりすびー', 'frisbee/flying disc', '飛ぶ'],
+      ['しんばる', 'cymbals', '音が出る'],
+      ['おかりな', 'ocarina', '音が出る 小さい'],
+      ['うくれれ', 'ukulele', '音が出る'],
+      ['ちぇろ/こんとらばす', 'cello/double bass', '音が出る 大きい']
     ],
 
     // ======================== 目に見えないもの ========================
@@ -778,7 +1049,19 @@
       ['どきどき/ときめき', 'heartbeat/thrill/excitement', '音が出る'],
       ['あんしん/安心/ほっと', 'relief', '柔らかい'],
       ['ゆうじょう/友情', 'friendship', '光る'],
-      ['わくわく', 'excited/looking forward', '飛ぶ']
+      ['わくわく', 'excited/looking forward', '飛ぶ'],
+      ['いただきます', 'itadakimasu/lets eat', ''],
+      ['ごちそうさま', 'thanks for the meal', ''],
+      ['ただいま', 'im home/i am home', ''],
+      ['おかえり', 'welcome home/welcome back', ''],
+      ['よろしく', 'nice to meet you', ''],
+      ['くやしい/悔しい', 'frustrated/frustrating', ''],
+      ['はずかしい/恥ずかしい', 'embarrassed/shy', ''],
+      ['びっくり', 'surprise/surprised', '音が出る'],
+      ['だいじょうぶ/大丈夫', 'its okay/it is okay/no problem', ''],
+      ['しんぱい/心配', 'worry/worried', ''],
+      ['おもいで/思い出', 'memory/memories', ''],
+      ['ふしぎ/不思議', 'wonder/mysterious', '']
     ],
     magic: [
       ['まほう/魔法/まじっく', 'magic', '光る'],
@@ -806,7 +1089,16 @@
       ['いりゅーじょん/まぼろし/幻', 'illusion/mirage', ''],
       ['さいみんじゅつ/催眠術/さいみん/催眠', 'hypnosis', ''],
       ['おおきくなあれ/大きくなあれ', 'grow bigger/enlarge', '大きい'],
-      ['ちいさくなあれ/小さくなあれ', 'shrink/get smaller', '小さい']
+      ['ちいさくなあれ/小さくなあれ', 'shrink/get smaller', '小さい'],
+      ['めてお/隕石落とし', 'meteor spell', '大きい 熱い 危ない'],
+      ['ふっかつ/復活', 'revive/resurrection', '光る'],
+      ['すりーぷ/ねむりのまほう', 'sleep spell', '柔らかい'],
+      ['ぱわーあっぷ', 'power up/power-up', '光る'],
+      ['まほうのじゅうたん/空飛ぶじゅうたん', 'magic carpet/flying carpet', '飛ぶ 柔らかい'],
+      ['まほうのらんぷ', 'magic lamp/genie lamp', '光る'],
+      ['まほうのくすり/ぽーしょん', 'potion/magic potion', ''],
+      ['びびでばびでぶー', 'bibbidi bobbidi boo', ''],
+      ['くちよせ/しょうかん/召喚', 'summon/summoning', '']
     ],
     time: [
       ['じかん/時間', 'time', ''],
@@ -835,7 +1127,23 @@
       ['しょうがつ/正月/おしょうがつ/お正月/がんたん/元旦', 'new year/new years day', '光る'],
       ['くりすます', 'christmas/xmas', '光る'],
       ['いちびょう/一秒/1秒', 'one second', '小さい'],
-      ['ひゃくねん/百年/100年/せいき/世紀', 'hundred years/century', '長い']
+      ['ひゃくねん/百年/100年/せいき/世紀', 'hundred years/century', '長い'],
+      ['まいにち/毎日', 'every day/everyday', ''],
+      ['にちようび/日曜日', 'sunday', ''],
+      ['げつようび/月曜日', 'monday', ''],
+      ['どようび/土曜日', 'saturday', ''],
+      ['ことし/今年', 'this year', ''],
+      ['らいねん/来年', 'next year', ''],
+      ['きょねん/去年', 'last year', ''],
+      ['いっしゅうかん/一週間', 'a week/one week', ''],
+      ['いっぷん/一分/1分', 'one minute/a minute', '小さい'],
+      ['いちじかん/一時間/1時間', 'one hour/an hour', ''],
+      ['ひるやすみ/昼休み', 'lunch break/lunchtime', ''],
+      ['こんばん/今晩/こんや/今夜', 'tonight', '冷たい'],
+      ['けさ/今朝', 'this morning', '光る'],
+      ['はろうぃん', 'halloween', '光る'],
+      ['ばれんたいん', 'valentines day/valentine', 'かわいい'],
+      ['れきし/歴史', 'history', '長い']
     ]
   };
 })(window);

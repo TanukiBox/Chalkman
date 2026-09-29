@@ -73,6 +73,9 @@
         en: 'Just as the stickman started moving, the class monitor switched off the lights and went home. The board is pitch black!'
       },
       rules: [
+        { cat: 'person', result: 'success', act: 'switchOn',
+          ja: '「{w}」が来て、教室の電気をパチッとつけてくれた！',
+          en: 'The {w} came by and flicked the classroom lights back on!' },
         { tag: 'glow', result: 'success', act: 'light',
           ja: '「{w}」がピカッと光って、道が見えた！',
           en: 'The {w} lit up and showed the way!' },
@@ -149,6 +152,9 @@
         en: 'The old blackboard has a huge crack. Fall in, and you vanish into the gap! Time to get across.'
       },
       rules: [
+        { tag: 'big', result: 'success', act: 'bridge',
+          ja: '大きな「{w}」が、ひび割れにすっぽりはまって、道になった！',
+          en: 'The big {w} wedged neatly into the crack and became a path!' },
         { tag: 'fly', result: 'success', act: 'ride',
           ja: '「{w}」に乗って、ふわりとひび割れを飛びこえた！',
           en: 'Rode the {w} and floated over the crack!' },
@@ -173,6 +179,9 @@
         en: 'Grrrumble. Someone doodled a delicious-looking cake. But you can\'t eat a drawing... Written words, though, become real!'
       },
       rules: [
+        { sub: 'magic', result: 'success', act: 'realCake',
+          ja: '「{w}」！ ケーキの落書きが、本物のケーキになった！ いただきまーす！',
+          en: '"{w}!" The cake doodle turned into a real cake! Time to eat!' },
         { tag: 'edible', result: 'success', act: 'eat',
           ja: '「{w}」をもぐもぐ食べた。おなかいっぱい！',
           en: 'Munched on the {w}. So full!',
@@ -255,6 +264,9 @@
         en: 'Along the clouds comes a flock of bird doodles! "This is OUR sky!" They swoop in to peck!'
       },
       rules: [
+        { tag: 'big', result: 'success', act: 'bigScare',
+          ja: '大きな「{w}」を見て、鳥たちは「でかっ！」とびっくり。飛んで逃げていった。',
+          en: 'The birds saw the huge {w}, squawked "WHOA!", and flew off.' },
         { tag: 'sound', result: 'success', act: 'scatterBirds',
           ja: '「{w}」の大きな音に、鳥たちはびっくり！ ちりぢりに飛んでいった。',
           en: 'The {w} made such a racket that the birds scattered in every direction!' },
@@ -279,6 +291,9 @@
         en: 'Rumble... FLASH! A grumpy thundercloud doodle is throwing lightning everywhere! You can\'t go on like this.'
       },
       rules: [
+        { sub: 'vehicle', result: 'success', act: 'carSafe',
+          ja: '「{w}」に乗りこんで、雷の中をつっきった！ 乗り物の中は、雷が落ちても安全なんだ。',
+          en: 'Hopped in the {w} and drove through the storm! Inside a vehicle, you\'re safe from lightning.' },
         { tag: 'long', result: 'success', act: 'lightningRod',
           ja: '長い「{w}」を立てたら、雷がぜんぶそっちに落ちた！ そのすきに通りぬけた。',
           en: 'Stood the long {w} up, and every bolt struck it instead! Walked on through.' },
@@ -303,6 +318,9 @@
         en: 'WHOOOOSH! The wind doodles are blowing straight at you. You\'ll get blown away!'
       },
       rules: [
+        { word: 'せんぷうき/扇風機/うちわ/団扇/fan', result: 'success', act: 'blowBack',
+          ja: '「{w}」で風をふきかえしたら、風の顔が目を回して、どこかへ飛んでいった！',
+          en: 'Blew the wind right back with the {w}! The wind face got dizzy and drifted away!' },
         { tag: 'heavy', result: 'success', act: 'pushHeavy',
           ja: '重い「{w}」を風よけにして、ずりずり押しながら進んだ！',
           en: 'Used the heavy {w} as a windbreak and shoved it forward, step by step!' },
@@ -324,6 +342,12 @@
         en: 'A castle doodle on the clouds! But the guard blocks the gate: "Want in? Then hand something over!"'
       },
       rules: [
+        { sub: 'job', result: 'success', act: 'shiftChange',
+          ja: '「{w}」が来て、門番と交代してくれた！ 新しい門番は、どうぞと通してくれた。',
+          en: 'The {w} arrived to take over guard duty! The new guard waved you right in.' },
+        { sub: 'toy', result: 'success', act: 'gift',
+          ja: '「{w}」をわたしたら、門番は遊ぶのに夢中。門を開けて通してくれた！',
+          en: 'Handed over the {w}. The guard got so into playing that he opened the gate!' },
         { cat: 'food', result: 'success', act: 'gift',
           ja: '「{w}」をわたしたら、門番はニコニコ。門を開けて通してくれた！',
           en: 'Handed over the {w}. The guard grinned and opened the gate!' },
@@ -369,6 +393,9 @@
         en: 'You grabbed a star doodle... but it\'s a shooting star! ZOOM! You\'ll crash into the edge of the board! Get down!'
       },
       rules: [
+        { tag: 'heavy', result: 'success', act: 'anchor',
+          ja: '重い「{w}」を、いかりのようにぶら下げたら、流れ星がゆっくり下へ。無事に降りられた！',
+          en: 'Hung the heavy {w} below like an anchor, and the shooting star slowly sank down. Safe landing!' },
         { tag: 'soft', result: 'success', act: 'starCushion',
           ja: 'やわらかい「{w}」を下に置いて、えいっと飛びおりた。ぼよーん！ 無事に着地！',
           en: 'Dropped the soft {w} below and jumped. BOING! A safe landing!' },
@@ -397,6 +424,9 @@
         en: 'Under the roots are mole doodle tunnels! Moles pop out of every hole: "This is OUR tunnel!"'
       },
       rules: [
+        { tag: 'sound', result: 'success', act: 'moleScare',
+          ja: '「{w}」の大きな音に、モグラたちはびっくり！ あわてて穴にもぐった。',
+          en: 'The loud {w} startled the moles, and they ducked back into their holes!' },
         { tag: 'glow', result: 'success', act: 'glareMole',
           ja: 'まぶしい「{w}」に、モグラたちは「まぶしい〜！」とあわてて穴にもぐった！',
           en: 'The bright {w} made the moles cry "Too bright!" and dive back into their holes!' },
@@ -421,6 +451,12 @@
         en: 'Whoosh... an underground river doodle! The current\'s too fast to cross.'
       },
       rules: [
+        { tag: 'hot', result: 'success', act: 'boilRiver',
+          ja: '熱い「{w}」で、川の水がぜんぶ湯気になった！ からっぽの川を歩いて渡った。',
+          en: 'The hot {w} turned the whole river into steam! Walked across the empty riverbed.' },
+        { tag: 'big', result: 'success', act: 'bridge',
+          ja: '大きな「{w}」を川にドボン！ 川をふさいで、その上を渡った。',
+          en: 'Dropped the big {w} into the river with a SPLASH, and walked across on top of it!' },
         { tag: 'swim', result: 'success', act: 'boatCross',
           ja: '「{w}」に乗って、流れにのりながら向こう岸へ渡った！',
           en: 'Rode the {w} with the current all the way to the other bank!' },
@@ -445,18 +481,27 @@
         en: 'A pitch-dark cave, its ceiling packed with bat doodles... Any light or noise might wake them! Sneak through quietly.'
       },
       rules: [
+        { word: 'こもりうた/子守唄/子守歌/lullaby', result: 'success', act: 'lullaby',
+          ja: '「{w}」を小さな声で歌ったら、コウモリたちはもっとぐっすり。その間に通りぬけた。',
+          en: 'Softly sang a {w}. The bats slept even deeper, and you slipped through.' },
         { tag: 'soft', result: 'success', act: 'tiptoe',
           ja: 'やわらかい「{w}」を足の下にしいて、足音を立てずにそーっと通りぬけた。',
           en: 'Padded your feet with the soft {w} and crept through without a sound.' },
         { tag: 'small', result: 'success', act: 'guide',
           ja: '小さな「{w}」が先に立って道案内。ひそひそ声で、出口まで連れていってくれた。',
           en: 'The tiny {w} led the way, whispering, all the way to the exit.' },
-        { tag: 'glow', result: 'funny', act: 'batsFly',
-          ja: '「{w}」が光ったとたん、コウモリたちが目をさまして、バサバサバサ！ …でも、飛んでいった先に出口が見えた！',
-          en: 'The {w} lit up and the bats woke with a FLAP FLAP FLAP! ...But where they flew, you spotted the exit!' },
-        { tag: 'sound', result: 'funny', act: 'batsSing',
-          ja: '「{w}」の音でコウモリたちが起きて…いっしょに歌いだした！ 大合唱のなかを通りぬけた。',
-          en: 'The {w} woke the bats... and they started singing along! Walked through the big chorus.' }
+        { tag: 'glow', result: 'fail', act: 'batsWake',
+          ja: '「{w}」が光ったとたん、コウモリたちが目をさまして、バサバサバサ！ 入口まで追い返された…',
+          en: 'The {w} lit up and the bats woke with a FLAP FLAP FLAP! They chased you all the way back...' },
+        { tag: 'sound', result: 'fail', act: 'batsWake',
+          ja: '「{w}」の音で、コウモリたちが目をさまして、バサバサバサ！ 入口まで追い返された…',
+          en: 'The {w} made a noise and the bats woke with a FLAP FLAP FLAP! They chased you all the way back...' },
+        { tag: 'fly', result: 'success', act: 'glideQuiet',
+          ja: '「{w}」に乗って、音も立てずにすーっと通りぬけた。',
+          en: 'Rode the {w} and glided through without a sound.' },
+        { sub: 'time', result: 'funny', act: 'batsLeave',
+          ja: '「{w}」と書いたら、コウモリたちは「もうそんな時間？」と、ぞろぞろ出かけていった。',
+          en: 'You wrote "{w}", and the bats said "Is it that time already?" and filed out for the night.' }
       ]
     },
 
@@ -469,6 +514,9 @@
         en: 'Rumble... rock doodles are crashing down from the cave ceiling! Watch your head!'
       },
       rules: [
+        { sub: 'vehicle', result: 'success', act: 'dashThrough',
+          ja: '「{w}」に乗って、岩が落ちてくる前に、びゅーんとかけぬけた！',
+          en: 'Rode the {w} and zoomed through before the rocks could land!' },
         { tag: 'hard', result: 'success', act: 'helmet',
           ja: 'かたい「{w}」をヘルメットにして、落ちてくる岩をカキーン！とはね返しながら進んだ。',
           en: 'Wore the hard {w} as a helmet and CLANGED the rocks away as you went!' },
@@ -490,6 +538,9 @@
         en: 'Someone\'s treasure map doodle! A snake doodle is coiled around the chest at the X. "HISSSS!" It won\'t let you pass.'
       },
       rules: [
+        { tag: 'cold', result: 'success', act: 'hibernate',
+          ja: '冷たい「{w}」で、ヘビはひんやり。そのまま冬眠してしまった。',
+          en: 'The cold {w} chilled the snake, and it curled up for a winter nap.' },
         { tag: 'sound', result: 'success', act: 'snakeCharm',
           ja: '「{w}」の音色に、ヘビはうっとり。ゆらゆら踊っているうちに、通りぬけた！',
           en: 'The sound of the {w} put the snake in a trance. It swayed along while you slipped by!' },
@@ -511,6 +562,9 @@
         en: 'Brrr... an ice cave doodle, full of icicles. It\'s freezing! You\'ll turn into a chalk popsicle!'
       },
       rules: [
+        { sub: 'animal', result: 'success', act: 'huddle',
+          ja: '「{w}」とぴったりくっついたら、あったか〜い！ いっしょに洞窟をぬけた。',
+          en: 'Snuggled up close to the {w}. So warm! You got through the cave together.' },
         { tag: 'hot', result: 'success', act: 'warmUp',
           ja: '熱い「{w}」であたたまって、ぽかぽか！ つららもとけて、元気に歩きだした。',
           en: 'Warmed up by the hot {w}! The icicles melted too, and off you went.' },

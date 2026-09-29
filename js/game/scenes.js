@@ -602,8 +602,22 @@
     update: function (sc, dt, D) { CM.SCENES.hungry.update(sc, dt, D); },
     drawChalk: function (ctx, sc, D) {
       drawGround(ctx, sc, D);
-      drawCake(ctx, sc.cakeX, D.gy, D.s * 1.1, D.time);
-      CM.chalk.text(ctx, D.T('cakeLabel'), sc.cakeX, D.gy + 20 * D.s, { size: 13 * D.s + 3, alpha: 0.5 });
+      var x = sc.cakeX, k = D.s * 1.1, w = 46 * k, h = 34 * k, gy = D.gy;
+      // 魔法で本物になったケーキ（色がつく）
+      if (sc.real > 0) {
+        ctx.save(); ctx.globalAlpha = 0.45 * sc.real;
+        ctx.fillStyle = '#fff1dc'; ctx.fillRect(x - w, gy - h, w * 2, h - 4); ctx.fillRect(x - w * 0.65, gy - h * 1.8, w * 1.3, h * 0.8);
+        ctx.fillStyle = COL.pink; ctx.fillRect(x - w, gy - h, w * 2, 8 * k); ctx.fillRect(x - w * 0.65, gy - h * 1.8, w * 1.3, 6 * k);
+        ctx.restore();
+      }
+      drawCake(ctx, x, gy, k, D.time);
+      // 食べたところは、なくなる（右から）
+      if (sc.eaten > 0) {
+        ctx.save(); ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = '#000';
+        ctx.fillRect(x + w + 14 * k - (w * 2 + 28 * k) * sc.eaten, gy - h * 2.9, (w * 2 + 28 * k) * sc.eaten + 2, h * 2.9 + 1);
+        ctx.restore();
+      }
+      if (!(sc.real > 0)) CM.chalk.text(ctx, D.T('cakeLabel'), sc.cakeX, D.gy + 20 * D.s, { size: 13 * D.s + 3, alpha: 0.5 });
     }
   };
 

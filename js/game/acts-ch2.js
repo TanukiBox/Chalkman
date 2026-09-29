@@ -58,7 +58,7 @@
     D.sfx.play('stretch');
     yield D.tween(0.9, function (k) {
       w.sx = U.lerp(1, need, U.easeOut(k)); w.sy = U.lerp(1, 0.6, k);
-      w.x = x0 + baseW * w.sx / 2; w.y = D.gy - w.dispH() / 2 + 2;
+      w.x = x0 + baseW * w.sx / 2; w.y = D.gy - w.dispH() / 2 - 7 * s;   // 雲のもこもこの上にのせる
     });
     // 棒人間が乗ったところが、ふわっと沈む
     var sag = function (x, k) { if (x < g.x0 || x > g.x1) return 0; var u = (x - g.x0) / (g.x1 - g.x0); return Math.sin(u * PI) * (6 + 8 * k) * s; };
@@ -613,12 +613,12 @@
       ml.mode = 'up';
       yield D.walkTo(ml.hx - 44 * s, { anim: 'walk', speed: 70 * s });
       m.play('swing');
-      yield 0.28;
+      yield 0.64;   // ふりかぶって（0.5秒）→ ふりおろしたところで、ポコッ
       D.sfx.play('boing');
       pop(D, 'sfx_poko', ml.hx, D.gy - 70 * s, COL.chalk, 18);
       D.fx.add({ type: 'star', x: ml.hx, y: D.gy - 40 * s, life: 0.4, size: 8 * s, color: COL.yellow });
       ml.mode = 'dizzy';
-      yield 0.3;
+      yield 0.35;
       m.play('idle');
     }
     yield 0.3;
@@ -740,7 +740,11 @@
     yield D.tween(1.4, function (k) { sc.water = U.lerp(0.55, 0, k); });
     m.play('puzzled');
     yield 0.5;
-    // 川底を歩いて渡る
+    yield* walkRiverbed(D);
+  };
+  /** からっぽになった川底を、歩いて渡る */
+  function* walkRiverbed(D) {
+    var m = D.man, sc = D.sc, g = sc.gap;
     yield D.walkTo(g.x0, { anim: 'walk' });
     var bedAt = function (x) { var u = U.clamp((x - g.x0) / (g.x1 - g.x0), 0, 1); return D.gy + sc.bed * 0.92 * Math.pow(Math.sin(u * PI), 0.5); };
     m.play('walk');
@@ -748,7 +752,7 @@
     yield D.tween(2.0, function (k) { m.x = U.lerp(mx, g.x1, k); m.gy = bedAt(m.x); });
     m.gy = D.gy;
     yield D.walkTo(exitX(D));
-  };
+  }
 
   // 9問目：やわらかい文字を足の下にしいて、音を立てずに（柔らかい）
   A.tiptoe = function* (D) {
@@ -777,43 +781,88 @@
     yield D.walkTo(exitX(D) + 40 * s, { anim: 'sneak', speed: 58 * s });
   };
 
-  // 光ったとたん、コウモリが一斉に飛び立つ。飛んでいった先に出口（光る・珍回答）
-  A.batsFly = function* (D) {
-    var w = D.w, s = D.s, sc = D.sc, m = D.man, y0 = w.y;
-    w.tint = COL.yellow;
-    var Lt = { x: w.x, y: w.y, r: 20 * s, color: 'rgba(255,230,140,A)' };
-    sc.lights.push(Lt);
-    D.follow(function () { Lt.x = w.x; Lt.y = w.y; });
-    D.sfx.play('glow');
-    yield D.tween(0.6, function (k) { w.y = y0 - 50 * s * U.easeOut(k); Lt.r = U.lerp(20 * s, D.st.w * 0.6, k); sc.dark = U.lerp(0.8, 0.5, k); });
-    pop(D, 'sfx_pika', w.x, w.y - 40 * s, COL.yellow, 22);
-    sc.awake = true;
-    yield 0.4;
-    D.sfx.play('rattle');
-    pop(D, 'sfx_basabasa', X(D, 0.6), sc.topY + 50 * s, COL.purple, 22);
-    m.play('puzzled');
-    sc.bats.forEach(function (b, i) { b.hang = false; b.face = 1; b.vx = (160 + Math.random() * 90) * s; b.vy = (Math.random() - 0.3) * 40 * s; b.wob = true; b.y += 20 * s; b.ph = i; });
-    yield 1.6;
-    pop(D, 'foundExit', X(D, 0.78), D.gy - 110 * s, COL.yellow, 20);
-    yield D.tween(0.6, function (k) { sc.dark = U.lerp(0.5, 0.25, k); });
-    yield D.walkTo(exitX(D));
-  };
-
-  // 音でコウモリが起きて、いっしょに歌いだす（音が出る・珍回答）
-  A.batsSing = function* (D) {
-    var w = D.w, s = D.s, sc = D.sc, m = D.man;
-    sc.awake = true;
-    D.sfx.play('note', 0);
-    pop(D, 'sfx_lalala', w.x, w.y - 40 * s, COL.yellow, 18);
-    var t = 0, k = 0;
+  // こもりうたで、コウモリがもっとぐっすり（決まった単語）
+  A.lullaby = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, t = 0, k = 0;
+    pop(D, 'sfx_nennen', w.x, w.y - 40 * s, COL.pink, 16);
     D.follow(function (dt) {
       t += dt;
-      w.y += Math.sin(t * 8) * 0.4 * s;
-      if (t > 0.35) { t = 0; k++; D.sfx.play('note', k); var b = sc.bats[k % sc.bats.length]; note(D, b.x, b.y + 40 * s, k); if (k % 3 === 0) note(D, w.x, w.y - 20 * s, k); }
+      w.rot = Math.sin(D.time * 2) * 0.08;
+      if (t > 0.7) { t = 0; k++; D.sfx.play('note', k % 3); D.fx.add({ type: 'note', text: '♪', x: w.x, y: w.y - 20 * s, vy: -25, vx: 20, life: 1.6, size: 12 * s + 4, color: COL.pink }); }
     });
+    sc.snoreT = 0; sc.snoreFast = true;
     yield 1.2;
-    sc.reveal = 0.4;
-    yield D.walkTo(exitX(D), { anim: 'walk', speed: 72 * D.s });
+    yield D.walkTo(exitX(D), { anim: 'sneak', speed: 55 * s });
+  };
+
+  // 飛ぶ文字に乗って、音もなくすーっと（飛ぶ）
+  A.glideQuiet = function* (D) {
+    var w = D.w, s = D.s, m = D.man;
+    yield D.tween(0.5, function (k) { w.x = U.lerp(D.sc.restX, m.x + 30 * s, k); onGround(D, w, D.gy - 6 * s * k); });
+    yield* mount(D);
+    pop(D, 'sfx_sooo', m.x + 20 * s, D.gy - 130 * s, COL.chalk, 16);
+    var x0 = w.x, y0 = w.y;
+    yield D.tween(3.0, function (k) { w.x = U.lerp(x0, exitX(D) + 40 * s, k); w.y = y0 - 26 * s * Math.sin(Math.min(1, k * 3) * PI / 2) + Math.sin(k * 9) * 2 * s; });
+  };
+
+  // 光や音で、コウモリが起きて追い返される（光る・音が出る＝失敗）
+  A.batsWake = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, m = D.man;
+    var glow = D.result && D.result.rule && D.result.rule.tag === 'glow';
+    if (glow) {
+      w.tint = COL.yellow;
+      var Lt = { x: w.x, y: w.y, r: 20 * s, color: 'rgba(255,230,140,A)' };
+      sc.lights.push(Lt);
+      D.sfx.play('glow');
+      pop(D, 'sfx_pika', w.x, w.y - 40 * s, COL.yellow, 22);
+      yield D.tween(0.5, function (k) { Lt.r = U.lerp(20 * s, D.st.w * 0.6, k); sc.dark = U.lerp(0.8, 0.45, k); });
+    } else {
+      D.sfx.play('boom');
+      for (var i = 0; i < 3; i++) D.fx.ring(w.x, w.y, 10 * s, D.st.w * (0.4 + i * 0.2), { life: 0.7 + i * 0.15, size: 2.4 });
+      pop(D, 'sfx_jaan', w.x, w.y - 40 * s, COL.yellow, 22);
+      yield 0.5;
+    }
+    sc.awake = true;
+    yield 0.5;
+    D.sfx.play('rattle');
+    pop(D, 'sfx_basabasa', X(D, 0.6), sc.topY + 50 * s, COL.purple, 22);
+    // コウモリが一斉に、棒人間へ
+    sc.bats.forEach(function (b, i) { b.hang = false; b.ph = i; b.wob = true; b.vx = 0; b.vy = 0; });
+    var t = 0;
+    D.follow(function (dt) {
+      t += dt;
+      sc.bats.forEach(function (b, i) {
+        var tx = m.x + Math.cos(t * 5 + i) * 40 * s, ty = m.gy - 90 * s + Math.sin(t * 4 + i * 1.7) * 30 * s;
+        var k = Math.min(1, dt * (1.5 + i * 0.2));
+        b.x += (tx - b.x) * k; b.y += (ty - b.y) * k; b.face = tx > b.x ? 1 : -1;
+      });
+      if (Math.random() < dt * 6) D.sfx.play('flop');
+    });
+    yield 0.6;
+    m.play('puzzled');
+    pop(D, 'eek', m.x, m.gy - 130 * s, COL.chalk, 18);
+    yield 0.5;
+    w.alpha = 0;
+    m.f = -1;
+    yield D.walkTo(D.view.x - 80 * s, { anim: 'run' });
+  };
+
+  // 「もうそんな時間？」と、コウモリが出かけていく（時間・珍回答）
+  A.batsLeave = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc;
+    sc.awake = true;
+    D.sfx.play('cute');
+    pop(D, 'batsTime', X(D, 0.62), sc.topY + 70 * s, COL.purple, 16);
+    yield 1.0;
+    for (var i = 0; i < sc.bats.length; i++) {
+      var b = sc.bats[i];
+      b.hang = false; b.face = 1; b.vx = 150 * s; b.vy = -10 * s; b.wob = true; b.y += 16 * s;
+      D.sfx.play('flop');
+      yield 0.18;
+    }
+    yield 0.8;
+    yield D.tween(0.5, function (k) { sc.dark = U.lerp(0.8, 0.55, k); });
+    yield D.walkTo(exitX(D));
   };
 
   // 10問目：かたい文字をヘルメットにして、岩をはね返す（硬い）
@@ -1053,5 +1102,178 @@
     D.sfx.play('grow');
     pop(D, 'sfx_nyoki', sh.x + 50 * s, D.gy - 80 * s, COL.green, 20);
     yield D.tween(2.6, function (k) { sc.stem.top = U.lerp(D.gy, D.st.y - 60 * s, U.easeIn(k)); });
+  };
+
+  // ============================================================
+  //  試遊で足した正解（第2章）
+  // ============================================================
+
+  // 8問目：大きな文字に、鳥たちがびっくり（大きい）
+  A.bigScare = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, s0 = w.scale, big = Math.min(s0 * 2.4, (D.st.w * 0.5) / w.width);
+    sc.swoopOn = false;
+    D.sfx.play('grow');
+    yield D.tween(0.6, function (k) { w.scale = U.lerp(s0, big, U.easeBack(k)); onGround(D, w); });
+    D.sfx.play('thud'); D.fx.shake(6, 0.3);
+    pop(D, 'huge', sc.center.x, sc.center.y - 40 * s, COL.blue, 22);
+    sc.birds.forEach(function (b) { b.mode = 'free'; b.angry = false; b.vx = (120 + Math.random() * 120) * s; b.vy = -(120 + Math.random() * 100) * s; D.fx.word('!', b.x, b.y - 14 * s, { size: 14 * s + 4, color: COL.blue, life: 0.5 }); });
+    D.sfx.play('flop');
+    yield 1.0;
+    cheer(D);
+    yield 0.6;
+    yield D.walkTo(exitX(D));
+  };
+
+  // 9問目：乗り物に乗って、雷の中をつっきる（乗り物）
+  A.carSafe = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, m = D.man;
+    yield* mount(D);
+    sc.onStrike = function () { w.shine = 0; D.fx.add({ type: 'star', x: w.x, y: topOf(w), life: 0.4, size: 7 * s, color: COL.yellow }); };
+    D.follow(function (dt) { sc.rod = { x: w.x, y: topOf(w) - 40 * s }; if (w.shine >= 0) { w.shine += dt * 3; if (w.shine > 1) w.shine = -1; } });
+    sc.boltT = 0.4;
+    pop(D, 'safe', w.x + 20 * s, topOf(w) - 90 * s, COL.yellow, 18);
+    D.sfx.play('rattle');
+    var x0 = w.x;
+    yield D.tween(3.0, function (k) { w.x = U.lerp(x0, exitX(D) + 40 * s, U.easeInOut(k)); w.rot = Math.sin(k * 40) * 0.02; });
+  };
+
+  // 10問目：扇風機・うちわで、風をふきかえす（決まった単語）
+  A.blowBack = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, m = D.man, f = sc.face, x0 = w.x;
+    yield D.tween(0.4, function (k) { w.x = U.lerp(x0, m.x + 40 * s + w.dispW() / 2, k); onGround(D, w); });
+    pop(D, 'sfx_byuu', w.x + 40 * s, w.y - 40 * s, COL.chalk, 22);
+    D.sfx.play('whoosh');
+    var t = 0;
+    D.follow(function (dt) {
+      t += dt;
+      w.rot = Math.sin(t * 30) * 0.04;
+      if (Math.random() < 0.5) D.fx.add({ type: 'line', x: w.x + w.dispW() / 2, y: w.y + (Math.random() - 0.5) * 30 * s, ang: -0.05 + (Math.random() - 0.5) * 0.2, d0: 0, d1: 220 * s, len: 22 * s, life: 0.6, size: 1.8, color: COL.chalk });
+    });
+    yield D.tween(1.0, function (k) { sc.wind = 1 - k; f.blow = 1 - k; });
+    f.mode = 'dizzy';
+    D.sfx.play('rattle');
+    var fx0 = f.x;
+    yield D.tween(1.2, function (k) { f.x = U.lerp(fx0, exitX(D) + f.r * 2, U.easeIn(k)); f.y -= 0.6 * s; });
+    cheer(D);
+    yield 0.6;
+    yield D.walkTo(exitX(D));
+  };
+
+  // 11問目：新しい門番と交代（職業）
+  A.shiftChange = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, g = sc.guard, x0 = w.x;
+    sc.guardQuiet = true;
+    yield D.tween(0.9, function (k) { w.x = U.lerp(x0, g.x - 44 * s, k); onGround(D, w); w.y -= Math.abs(Math.sin(k * PI * 4)) * 8 * s; });
+    pop(D, 'kotai', g.x, D.gy - 175 * s, COL.blue, 18);
+    g.play('cheer');
+    D.sfx.play('cheer');
+    yield 0.8;
+    // 前の門番は、お城の中へ帰る
+    D.sfx.play('stretch');
+    yield D.tween(0.8, function (k) { sc.castle.gate = k; });
+    g.f = 1;
+    yield D.walkTo(sc.castle.gx, { actor: g, anim: 'walk', speed: 90 * s });
+    yield D.tween(0.4, function (k) { g.alpha = 1 - k; });
+    g.spear = null;
+    var wx = w.x;
+    yield D.tween(0.5, function (k) { w.x = U.lerp(wx, sc.castle.gx + sc.castle.gw, k); onGround(D, w); });
+    yield* intoGate(D);
+  };
+
+  // 13問目：重い文字をいかりにして、ゆっくり下へ（重い）
+  A.anchor = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, m = D.man, st = sc.star, fl = sc.floorY, x0 = w.x, y0 = w.y, rope = 44 * s;
+    D.chalkHook(function (ctx) { CM.chalk.line(ctx, [st.x + 10 * s, st.y + st.dy + st.r * 0.4, w.x, topOf(w)], { w: 2, seed: 5, color: COL.chalk, alpha: 0.9 }); });
+    yield D.tween(0.5, function (k) { w.x = U.lerp(x0, st.x + 10 * s, k); w.y = U.lerp(y0, st.y + st.r * 0.4 + rope + w.dispH() / 2, k); });
+    D.sfx.play('thud');
+    pop(D, 'sfx_zushi', w.x + 40 * s, w.y, COL.chalk, 18);
+    var sy = st.y, landY = fl - w.dispH() / 2 - 2, t = 0;
+    yield D.tween(2.4, function (k) {
+      sc.speed = 1 - 0.9 * k; st.shake = 1 - k;
+      st.y = U.lerp(sy, fl - st.r * 0.9 - 6 * s, U.easeInOut(k));
+      w.y = Math.min(landY, st.y + st.r * 0.4 + rope + w.dispH() / 2); w.x = st.x + 10 * s + Math.sin(k * 12) * 4 * s * (1 - k);
+    });
+    D.sfx.play('clink');
+    sc.riding = false; D.gy = fl;
+    yield D.hop(m, st.x - st.r - 30 * s, fl, 24 * s, 0.45);
+    cheer(D);
+    yield 0.8;
+    yield D.walkTo(exitX(D));
+  };
+
+  // 地下7問目：大きな音で、モグラが穴にもぐる（音が出る）
+  A.moleScare = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc;
+    sc.quiet = true;
+    yield D.tween(0.25, function (k) { w.sx = w.sy = 1 + 0.3 * k; });
+    D.sfx.play('boom');
+    for (var i = 0; i < 3; i++) D.fx.ring(w.x, w.y, 10 * s, D.st.w * (0.4 + i * 0.2), { life: 0.7 + i * 0.15, size: 2.4 });
+    pop(D, 'sfx_jaan', w.x, w.y - 40 * s, COL.yellow, 22);
+    yield D.tween(0.25, function (k) { w.sx = w.sy = 1.3 - 0.3 * k; });
+    sc.moles.forEach(function (ml) { D.fx.word('!', ml.hx, D.gy - 70 * s, { size: 16 * s + 4, color: COL.orange, life: 0.6 }); });
+    yield 0.4;
+    for (i = 0; i < sc.moles.length; i++) { sc.moles[i].mode = 'down'; D.sfx.play('pop'); yield 0.15; }
+    cheer(D);
+    yield 0.6;
+    yield D.walkTo(exitX(D));
+  };
+
+  // 地下8問目：熱い文字で、川の水が湯気に（熱い）
+  A.boilRiver = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, g = sc.gap, x0 = w.x, y0 = w.y;
+    w.tint = COL.red;
+    D.sfx.play('fire');
+    yield D.tween(0.6, function (k) { w.x = U.lerp(x0, (g.x0 + g.x1) / 2, k); w.y = U.lerp(y0, D.gy - 40 * s, k); });
+    pop(D, 'sfx_shuwa', w.x, w.y - 50 * s, COL.chalk, 20);
+    D.sfx.play('swirl');
+    yield D.tween(2.0, function (k) {
+      sc.water = 1 - k;
+      if (Math.random() < 0.5) D.fx.add({ type: 'steam', x: U.lerp(g.x0 + 20 * s, g.x1 - 20 * s, Math.random()), y: D.gy + 10 * s, vy: -40, life: 1.0, size: 2.4 * s, color: COL.chalk });
+    });
+    w.tint = null;
+    yield D.tween(0.4, function (k) { w.alpha = 1 - k; });
+    yield* walkRiverbed(D);
+  };
+
+  // 地下10問目：乗り物で、岩が落ちる前にかけぬける（乗り物）
+  A.dashThrough = function* (D) {
+    var w = D.w, s = D.s;
+    yield* mount(D);
+    pop(D, 'sfx_byuun', w.x + 60 * s, topOf(w) - 80 * s, COL.chalk, 22);
+    D.sfx.play('whoosh');
+    var x0 = w.x;
+    yield D.tween(1.2, function (k) {
+      w.x = U.lerp(x0, exitX(D) + 60 * s, U.easeIn(k));
+      if (Math.random() < 0.5) D.fx.dust(w.x - w.dispW() / 2, D.gy, 1, { angle: PI + 0.2, spread: 0.4, speed: 80, g: 60 });
+    });
+  };
+
+  // 地下11問目：冷たい文字で、ヘビが冬眠（冷たい）
+  A.hibernate = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, sn = sc.snake, x0 = w.x, y0 = w.y;
+    w.tint = COL.ice;
+    D.sfx.play('freeze');
+    yield D.tween(0.8, function (k) { w.x = U.lerp(x0, sn.hx - 50 * s, k); w.y = U.lerp(y0, sn.hy + 10 * s, k); });
+    for (var i = 0; i < 10; i++) D.fx.add({ type: 'frost', x: sn.hx + (Math.random() - 0.5) * 70 * s, y: sn.hy + Math.random() * 80 * s, vy: 10, vr: 2, life: 1.4, size: 5 * s, color: COL.ice });
+    pop(D, 'sfx_hinyari', sn.hx, sn.hy - 40 * s, COL.ice, 18);
+    yield 0.8;
+    sn.mode = 'sleep';
+    D.sfx.play('yawn');
+    yield 1.0;
+    yield D.walkTo(exitX(D), { anim: 'sneak', speed: 55 * s });
+  };
+
+  // 地下12問目：動物とくっついて、あったか〜い（動物）
+  A.huddle = function* (D) {
+    var w = D.w, s = D.s, sc = D.sc, m = D.man, x0 = w.x;
+    yield D.tween(0.8, function (k) { w.x = U.lerp(x0, m.x + 20 * s + w.dispW() / 2, k); onGround(D, w); w.y -= Math.abs(Math.sin(k * PI * 3)) * 8 * s; });
+    for (var i = 0; i < 5; i++) D.fx.add({ type: 'heart', x: m.x + 20 * s, y: D.gy - 90 * s, vy: -40, vx: (Math.random() - 0.5) * 40, life: 1.1, size: 6 * s, color: COL.pink });
+    D.sfx.play('cute');
+    sc.cold = 0.2;
+    m.play('cheer');
+    pop(D, 'sfx_attaka', m.x, D.gy - 140 * s, COL.pink, 18);
+    yield 1.0;
+    D.follow(function () { w.x = m.x + 20 * s + w.dispW() / 2; onGround(D, w); w.y -= Math.abs(Math.sin(D.time * 10)) * 5 * s; });
+    yield D.walkTo(exitX(D) + w.dispW(), { anim: 'walk', speed: 72 * s });
   };
 })(window);

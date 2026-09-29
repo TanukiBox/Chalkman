@@ -228,7 +228,7 @@
       P.D = D;
       P.word = null; P.phase = 'none'; P.stamp = null;
       // はじめの見せ方：左から歩いて入る → （シーンによっては）カメラを引いて全体を見せる
-      var walkIn = !!opts.walkIn, intro = !opts.retry && S.intro;
+      var walkIn = !!opts.walkIn && !D.sc.noWalkIn, intro = !opts.retry && S.intro;
       P.introLock = walkIn || !!intro;
       if (P.introLock) {
         var tx = D.man.x, anim = D.sc.manAnim || 'idle';
@@ -417,6 +417,7 @@
       // 画面の座標 → 黒板の中の座標へ
       D.w.x = P.fly.wx; D.w.y = P.fly.wy; D.w.scale = P.fly.ws;
       D.kind = r.kind;
+      D.result = r;
       P.phase = 'act';
       P.failAfterDone = false;
       P.word = null;
@@ -833,7 +834,7 @@
         w.x = j.handF[0] + f * 10 * s; w.y = j.handF[1] + 12 * s; w.rot = f * 1.1;
       } else {
         w.x = j.handF[0] + f * 8 * s; w.y = j.handF[1] - 6 * s + (D.held === 'toss' ? D.tossY : 0);
-        w.rot = D.held === 'toss' ? D.tossY * 0.05 : 0;
+        w.rot = D.held === 'toss' ? D.tossY * 0.05 : D.heldRot * f;
       }
     }
 

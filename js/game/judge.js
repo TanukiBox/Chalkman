@@ -169,15 +169,20 @@
     if (rule.tag) return entry.tags.indexOf(rule.tag) >= 0;
     if (rule.sub) return entry.sub === rule.sub;
     if (rule.cat) return entry.cat === rule.cat;
-    if (rule.word) return entry === CM.lookupWord(rule.word);
+    if (rule.word) return String(rule.word).split('/').some(function (w) { return CM.lookupWord(w) === entry; });
     return false;
   }
 
   /** 大分類（と小分類）の共通反応 */
-  function commonReaction(entry) {
+  function commonReaction(entry, key) {
     var R = CM.COMMON_REACTIONS || {}, c = R[entry.cat] || {};
-    var s = c.subs && c.subs[entry.sub];
-    return s ? { ja: s.ja, en: s.en, anim: s.anim, act: s.act, by: 'sub' } : { ja: c.ja || '', en: c.en || '', anim: c.anim || 'puzzled', act: c.act, by: 'cat' };
+    var s = c.subs && c.subs[entry.sub], base = s || c;
+    // いくつかの反応（alts）から、単語ごとに1つ選ぶ（同じ単語なら、いつも同じ反応）
+    var list = [base].concat(base.alts || []);
+    var h = 0, k = String(key || '');
+    for (var i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) % 100003;
+    var x = list[h % list.length];
+    return { ja: x.ja || '', en: x.en || '', anim: x.anim || base.anim || 'puzzled', act: x.act, by: s ? 'sub' : 'cat' };
   }
 
   /**
@@ -210,9 +215,11 @@
     if (!entry) { r.level = 5; r.kind = 'unknown'; return r; }
     // 2. 問題のタグ → 3. 問題の小分類など
     if (problem && problem.rules) {
+      // その問題で決めた「決まった単語」がいちばん先（例：コウモリの洞窟の「こもりうた」は、音が出ても成功）
+      var byWord = problem.rules.filter(function (x) { return x.word; });
       var byTag = problem.rules.filter(function (x) { return x.tag; });
-      var byOther = problem.rules.filter(function (x) { return !x.tag; });
-      var steps = [[2, byTag], [3, byOther]];
+      var byOther = problem.rules.filter(function (x) { return !x.tag && !x.word; });
+      var steps = [[2, byWord], [2, byTag], [3, byOther]];
       for (var s = 0; s < steps.length; s++) {
         var list = steps[s][1];
         for (var i = 0; i < list.length; i++) {
@@ -231,7 +238,7 @@
     }
     // 4. 共通反応（失敗）
     r.level = 4; r.kind = 'fail';
-    r.reaction = commonReaction(entry);
+    r.reaction = commonReaction(entry, key);
     r.act = r.reaction.act || null;
     r.showTag = entry.tags[0] || null;
     r.chalk = CHALK_FAIL;
