@@ -622,8 +622,25 @@
       padEl.appendChild(row);
     }
 
+    /**
+     * 場面に合わせて BGM を選ぶ
+     *   タイトル・プロローグ・回収画面・第1章 … 教室　第2章 … 空／地下　第3章 … 夜明け（8時が近づくと速くなる）
+     *   エンディング … いったん止めて、ファンファーレのあとに流す（scenes-ch3.js）　ゲームオーバー … 止める
+     */
+    function updateMusic() {
+      var bgm = app.bgm, st = P.state;
+      if (!bgm) return;
+      if (st === 'dying' || st === 'over') { bgm.stop(1.5); return; }
+      if (st === 'ending') { if (bgm.playing !== 'ending') bgm.stop(0.8); return; }
+      if (st === 'title' || st === 'prologue' || st === 'collection' || !run) { bgm.play('classroom'); return; }
+      if (run.chapter === 2) bgm.play(run.route === 'under' ? 'under' : 'sky');
+      else if (run.chapter >= 3) { bgm.play('dawn'); bgm.setTempo(st === 'clear' ? 1 : 1 + run.q * 0.04); }
+      else bgm.play('classroom');
+    }
+
     function buildPad() {
       buildHud();
+      updateMusic();
       padEl.innerHTML = '';
       ui.slate = null; ui.input = null;
       var st = P.state;
@@ -641,6 +658,10 @@
           padEl.appendChild(btn(T('start'), 'big', function () { app.sfx.play('ui'); newGame(); }));
         }
         padEl.appendChild(btn(T('collection', { n: Object.keys(CM.getSeenEndings()).length }), '', function () { app.sfx.play('ui'); openCollection(); }));
+        // BGM だけ消す（効果音は鳴る）
+        padEl.appendChild(btn(app.bgm.enabled ? T('bgmOn') : T('bgmOff'), 'small' + (app.bgm.enabled ? ' on' : ''), function () {
+          app.bgm.enabled = !app.bgm.enabled; app.sfx.play('ui'); buildPad();
+        }));
         // 確認用のボタン（config.js の DEV_BUTTONS が false なら出さない）
         if (CFG.DEV_BUTTONS) {
           padEl.appendChild(btn(T('toLab'), 'small', function () { app.sfx.play('ui'); app.go('lab'); }));

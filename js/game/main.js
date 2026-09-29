@@ -58,6 +58,7 @@
   document.documentElement.lang = app.i18n.lang;
   app.sound = TB.createSound(app.store);
   app.sfx = CM.createSfx(app.sound);
+  app.bgm = CM.createBgm(app.sound, app.store);   // BGM（場面ごとに曲が変わる）
 
   // ------------------------------------------------------------
   // 画面の大きさ

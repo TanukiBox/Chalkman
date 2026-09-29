@@ -625,6 +625,8 @@
       [1.3, 1.7, 2.1, 2.5].forEach(function (a, i) { once('pop' + i, a, function () { D.sfx.play('pop'); }); });
       once('ribbon', 3.0, function () { D.sfx.play(big ? 'fanfare' : 'softTune'); });
       once('stamp', 3.9, function () { D.sfx.play(big ? 'boom' : 'thud'); D.fx.shake(big ? 6 : 3, 0.3); });
+      // ファンファーレが鳴りおわってから、エンディングの曲
+      once('bgm', 5.2, function () { if (D.app.bgm) D.app.bgm.play('ending'); });
       void t0;
     },
     drawChalk: function (ctx, sc, D) {

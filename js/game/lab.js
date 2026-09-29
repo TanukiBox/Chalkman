@@ -426,6 +426,7 @@
     var lastFrame = null;
     var api = {
       enter: function () {
+        if (app.bgm) app.bgm.stop(0.5);   // 実験室は、音を聞きくらべる所なので BGM は止める
         buildHud(); buildPad();
         man.play(CM.MAN_ORDER[0]);
       },
