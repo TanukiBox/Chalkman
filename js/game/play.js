@@ -265,6 +265,12 @@
         buildPad();
       });
     }
+    /** 確認用：章とルートを決めて、その章の1問目から始める */
+    function startAt(ch, route) {
+      run = { chapter: ch, q: 0, funny: 0, lastFunny: null, route: route, words: 0 };
+      meter.set(CFG.CHALK_START);
+      goProblem(0, 'scroll');
+    }
     function goProblem(i, how) {
       var list = chapterProblems(run.chapter);
       run.q = i;
@@ -538,6 +544,12 @@
         padEl.appendChild(el('p', 'prompt', T('titleNote')));
         padEl.appendChild(btn(T('start'), 'big', function () { app.sfx.play('ui'); newGame(); }));
         padEl.appendChild(btn(T('toLab'), 'small', function () { app.sfx.play('ui'); app.go('lab'); }));
+        // 確認用（試遊のあいだだけ）：第2章から始める
+        var tr = el('div', 'row kb-hide');
+        [['sky', 'testSky'], ['under', 'testUnder']].forEach(function (d) {
+          tr.appendChild(btn(T(d[1]), 'small', function () { app.sfx.play('ui'); startAt(2, d[0]); }));
+        });
+        padEl.appendChild(tr);
       } else if (st === 'input' || st === 'result' || st === 'dying') {
         var list = chapterProblems(run.chapter);
         padEl.appendChild(el('p', 'qnum kb-hide', chapterName(run.chapter) + '　' + (run.q + 1) + ' / ' + list.length));

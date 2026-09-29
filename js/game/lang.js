@@ -112,6 +112,8 @@
       soWide: 'ひろっ…！',
       // 第2章
       routeSkyShort: '空',
+      testSky: '確認用：第2章（空）から',
+      testUnder: '確認用：第2章（地下）から',
       routeUnderShort: '地',
       cheep: 'チュン！',
       guardHalt: '止まれ〜！',
@@ -345,6 +347,8 @@
       soWide: 'So wide...!',
       // Chapter 2
       routeSkyShort: 'Sky',
+      testSky: 'Test: Ch.2 (Sky)',
+      testUnder: 'Test: Ch.2 (Underground)',
       routeUnderShort: 'Und',
       cheep: 'Tweet!',
       guardHalt: 'Halt!',
