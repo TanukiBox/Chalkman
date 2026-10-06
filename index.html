@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+<title>チョークマン／CHALK MAN</title>
+<meta name="description" content="黒板の棒人間が動き出す。あなたが書いた「ことば」が、そのまま道具になる。ブラウザで無料で遊べるゲーム。">
+<meta name="theme-color" content="#23402f">
+<!-- リンクの見た目（X・LINE などに貼ったときの画像と題名）。画像は tools/make-ogp.js で作る -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tanuki Box">
+<meta property="og:title" content="チョークマン／CHALK MAN">
+<meta property="og:description" content="黒板の棒人間が動き出す。あなたが書いた「ことば」が、そのまま道具になる。ブラウザで無料で遊べるゲーム。">
+<meta property="og:url" content="https://tanukibox.github.io/Chalkman/">
+<meta property="og:image" content="https://tanukibox.github.io/Chalkman/assets/ogp.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="黒板に「チョークマン」の題名と、「はしご」という文字を持ち上げる棒人間">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="チョークマン／CHALK MAN">
+<meta name="twitter:description" content="あなたが書いた「ことば」が、そのまま道具になる。棒人間を自由帳まで逃がそう。">
+<meta name="twitter:image" content="https://tanukibox.github.io/Chalkman/assets/ogp.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CHALK MAN">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yomogi&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="board" aria-label="CHALK MAN"></canvas>
+  <!-- 画面の上に重ねるボタンや入力欄（位置は JS で黒板に合わせる） -->
+  <div id="hud"></div>
+  <div id="pad"></div>
+</div>
+<div id="safe" aria-hidden="true"></div>
+
+<!-- Tanuki Box 共通土台 -->
+<script src="js/common/tb-store.js"></script>
+<script src="js/common/tb-i18n.js"></script>
+<script src="js/common/tb-sound.js"></script>
+
+<!-- CHALK MAN -->
+<script src="js/game/config.js"></script>
+<script src="js/game/lang.js"></script>
+<script src="js/game/util.js"></script>
+<script src="js/game/chalk.js"></script>
+<script src="js/game/layout.js"></script>
+<script src="js/game/fx.js"></script>
+<script src="js/game/stickman.js"></script>
+<script src="js/game/props.js"></script>
+<script src="js/game/wordobj.js"></script>
+<script src="js/game/tags.js"></script>
+<!-- 単語の判定（辞書・特別な単語と共通反応・NGワード は js/data/ の中） -->
+<script src="js/data/dictionary.js"></script>
+<script src="js/data/reactions.js"></script>
+<script src="js/data/ngwords.js"></script>
+<script src="js/game/judge.js"></script>
+<script src="js/game/gauge.js"></script>
+<script src="js/game/sfx.js"></script>
+<script src="js/game/bgm.js"></script>
+<!-- 本編（問題データは js/data/problems.js） -->
+<script src="js/data/problems.js"></script>
+<script src="js/data/endings.js"></script>
+<script src="js/game/scenes.js"></script>
+<script src="js/game/scenes-ch2.js"></script>
+<script src="js/game/scenes-ch3.js"></script>
+<script src="js/game/acts.js"></script>
+<script src="js/game/acts-ch2.js"></script>
+<script src="js/game/acts-fail.js"></script>
+<script src="js/game/acts-ch3.js"></script>
+<script src="js/game/extras.js"></script>
+<script src="js/game/play.js"></script>
+<script src="js/game/lab.js"></script>
+<script src="js/game/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #1b3325;
+}
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  font-family: "Yomogi", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif;
+  color: #f3f1e7;
+}
+/* 画面全体。高さはキーボードが開いたときも「見えている高さ」に JS で合わせる */
+#app {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: var(--vvh, 100%);
+  overflow: hidden;
+}
+#board {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+#hud, #pad {
+  position: absolute;
+  box-sizing: border-box;
+}
+#hud {
+  display: flex;
+  gap: 6px;
+  z-index: 3;
+}
+#pad {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  z-index: 2;
+}
+.hide-ui #hud, .hide-ui #pad { display: none; }
+/* 撮影モード：黒板と棒人間と書いた文字だけ（右上の「撮影」ボタンだけ、うすく残す） */
+.capture #hud .cbtn:not(.cap-toggle) { display: none; }
+.capture #hud .cap-toggle { opacity: 0.3; }
+.capture #pad .qnum, .capture #pad .prompt, .capture #pad .note { display: none; }
+.cbtn.dim { opacity: 0.55; }
+.cbtn.share { border-color: #9fd6ff; color: #dff1ff; }
+
+/* ---- チョークで描いたようなボタン ---- */
+.cbtn {
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.15;
+  color: #f3f1e7;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(243, 241, 231, 0.75);
+  border-radius: 12px 9px 13px 8px / 9px 13px 8px 12px;
+  padding: 6px 8px;
+  min-height: 36px;
+  cursor: pointer;
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.7);
+  touch-action: manipulation;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.cbtn:active { background: rgba(255, 255, 255, 0.16); }
+.cbtn.on { border-color: #ffe27a; color: #ffe27a; background: rgba(255, 226, 122, 0.10); }
+.cbtn.small { font-size: 13px; min-height: 30px; padding: 3px 8px; }
+.cbtn.red { border-color: #ff9d8a; color: #ffb3a3; }
+.cbtn.blue { border-color: #9fd6ff; color: #bfe4ff; }
+.cbtn:disabled { opacity: 0.35; cursor: default; }
+
+.row { display: flex; gap: 6px; align-items: stretch; flex-wrap: wrap; }
+.row > .grow { flex: 1 1 auto; }
+.grid {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+}
+.grid.wide { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+.grid .cbtn { padding: 5px 4px; }
+.cbtn .num { font-size: 11px; opacity: 0.7; margin-right: 3px; }
+.tabs { display: flex; gap: 6px; }
+.tabs .cbtn { flex: 1 1 0; }
+.tabs.probs { flex-wrap: wrap; gap: 4px; }
+.tabs.probs .cbtn { flex: 0 0 auto; min-width: 2.6em; padding-left: 6px; padding-right: 6px; }
+.note {
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(243, 241, 231, 0.72);
+  margin: 0;
+}
+/* 答え図鑑：前・次のあいだの問題名／「答え図鑑に登録！」 */
+.navlabel { flex: 1 1 0; min-width: 0; margin: 0; align-self: center; text-align: center; font-size: 14px; line-height: 1.3; color: #f3f1e7; }
+.new-answer { margin: 0; font-size: 13px; color: #ffe27a; }
+.hintline { margin: 0; font-size: 14px; line-height: 1.35; color: #9fd6ff; }
+.capture #pad .hintline { display: none; }
+/* 書く場所（ここは空けておき、キャンバスにチョークの文字が書かれる） */
+.slate { flex: 0 0 64px; height: 64px; }
+/* 書く欄がせまいとき（スマホ縦）：説明文を隠して、ボタンを小さめに */
+#pad.compact .note { display: none; }
+#pad.compact .slate { flex-basis: 58px; height: 58px; }
+#pad.compact .grid .cbtn { min-height: 32px; font-size: 14px; }
+#pad.kb .slate { flex-basis: 52px; height: 52px; }
+
+/* 入力欄：黒板にチョークで線を引いたような見た目 */
+.cinput {
+  font: inherit;
+  font-size: 22px;
+  color: #ffffff;
+  background: transparent;
+  border: none;
+  border-bottom: 2px dashed rgba(243, 241, 231, 0.7);
+  border-radius: 0;
+  padding: 4px 4px;
+  min-width: 0;
+  outline: none;
+  -webkit-user-select: text;
+  user-select: text;
+  caret-color: #ffe27a;
+}
+.cinput::placeholder { color: rgba(243, 241, 231, 0.38); }
+
+/* 画面の切り欠き（ノッチ）の大きさを JS から読むための見えない箱 */
+#safe {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+
+/* キーボードが開いている間は、書く欄を入力だけにする */
+#pad.kb .kb-hide { display: none; }
+
+/* ---- 判定テスト ---- */
+.examples { align-items: center; flex-wrap: nowrap; overflow-x: auto; flex: 0 0 auto; padding-bottom: 2px; }
+.examples .note { flex: 0 0 auto; }
+.examples .cbtn { flex: 0 0 auto; }
+.examples .cbtn { min-height: 28px; font-size: 13px; padding: 2px 7px; }
+.result { display: flex; flex-direction: column; gap: 4px; }
+.levels { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 4px; }
+.levels .lv { flex: 0 0 auto; white-space: nowrap; }
+.levels .lv {
+  font-size: 12px;
+  padding: 2px 6px;
+  border: 1.5px dashed rgba(243, 241, 231, 0.35);
+  border-radius: 8px;
+  color: rgba(243, 241, 231, 0.55);
+}
+.levels .lv.hit { border-style: solid; border-color: #ffe27a; color: #ffe27a; background: rgba(255, 226, 122, 0.12); }
+.result p { margin: 0; line-height: 1.35; }
+.rline { font-size: 13px; color: rgba(243, 241, 231, 0.8); word-break: break-all; }
+.rmain { font-size: 16px; }
+.rmain.k-success { color: #b8f0a0; }
+.rmain.k-funny { color: #ffe27a; }
+.rmain.k-fail, .rmain.k-pinch { color: #ffb3a3; }
+.rmain.k-retry, .rmain.k-unknown { color: #a9dcff; }
+.rmain.k-ng { color: #ffb3a3; }
+.rmsg { font-size: 15px; }
+
+/* ---- 本編 ---- */
+.prompt { margin: 0; font-size: 16px; line-height: 1.5; }
+.qnum { margin: 0; font-size: 13px; color: #ffe27a; }
+.cbtn.big { font-size: 19px; min-height: 48px; }
+.rmsg.big { font-size: 17px; line-height: 1.5; }
+.rmsg.k-unknown, .rmsg.k-retry { color: #a9dcff; }
+.rmsg.k-ng { color: #ffb3a3; }
